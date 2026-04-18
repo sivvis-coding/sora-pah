@@ -1,0 +1,40 @@
+version: "3.8"
+
+# Development override — hot reload via volume mounts.
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Both services mount their source directory and run the dev server instead
+# of serving a production build, so every file save triggers a live reload.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: sora-backend-dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules       # anonymous volume keeps container node_modules isolated
+    environment:
+      - PORT=3000
+      - AUTH_DEV_MODE=true
+      - AUTH_DEV_SECRET=sora-dev-secret-change-me
+      - CORS_ORIGIN=http://localhost:5173
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: sora-frontend-dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules       # anonymous volume keeps container node_modules isolated
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_TARGET=http://backend:3000
+    depends_on:
+      - backend
+    restart: unless-stopped

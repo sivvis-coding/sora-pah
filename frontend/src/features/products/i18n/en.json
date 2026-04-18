@@ -1,0 +1,11 @@
+{
+  "title": "Products",
+  "empty": "No products yet. Create one via the API.",
+  "noDescription": "No description",
+  "detail": {
+    "title": "Product Detail",
+    "id": "Product ID",
+    "placeholder": "This page will display full product details, stakeholders, initiatives, and voting once those features are implemented.",
+    "back": "Back to Products"
+  }
+}

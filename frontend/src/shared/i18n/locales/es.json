@@ -1,0 +1,12 @@
+{
+  "app": {},
+  "nav": {
+    "products": "Productos",
+    "users": "Usuarios"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "errorLoadProducts": "Error al cargar los productos"
+  }
+}

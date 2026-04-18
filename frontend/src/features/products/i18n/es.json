@@ -1,0 +1,11 @@
+{
+  "title": "Productos",
+  "empty": "Aún no hay productos. Crea uno a través de la API.",
+  "noDescription": "Sin descripción",
+  "detail": {
+    "title": "Detalle del Producto",
+    "id": "ID del Producto",
+    "placeholder": "Esta página mostrará los detalles completos del producto, stakeholders, iniciativas y votaciones una vez que esas funcionalidades estén implementadas.",
+    "back": "Volver a Productos"
+  }
+}

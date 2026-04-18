@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: sora-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - AUTH_DEV_MODE=true
+      - AUTH_DEV_SECRET=sora-dev-secret-change-me
+      - CORS_ORIGIN=http://localhost:8080
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: sora-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
