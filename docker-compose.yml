@@ -6,10 +6,10 @@ services:
     container_name: sora-backend
     ports:
       - "3000:3000"
+    env_file:
+      - ./backend/.env
     environment:
       - PORT=3000
-      - AUTH_DEV_MODE=true
-      - AUTH_DEV_SECRET=sora-dev-secret-change-me
       - CORS_ORIGIN=http://localhost:8080
     restart: unless-stopped
 

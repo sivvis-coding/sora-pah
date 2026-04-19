@@ -1,0 +1,94 @@
+{
+  "hero": {
+    "headline": "De opiniones a decisiones — rápido.",
+    "subheadline": "SORA ayuda a los equipos de producto a alinear stakeholders, priorizar mejor y avanzar más rápido.",
+    "cta": "Comenzar",
+    "ctaSecondary": "Ver cómo funciona"
+  },
+  "problem": {
+    "title": "¿Te suena familiar?",
+    "subtitle": "La mayoría de equipos luchan con los mismos patrones una y otra vez.",
+    "voices": {
+      "title": "Demasiadas voces",
+      "desc": "Todos tienen una opinión, pero no hay forma estructurada de capturarlas y sopesarlas."
+    },
+    "structure": {
+      "title": "Sin estructura",
+      "desc": "Las decisiones ocurren en hilos de Slack, emails y reuniones — y luego se pierden."
+    },
+    "slow": {
+      "title": "Ejecución lenta",
+      "desc": "Para cuando decides, la ventana de oportunidad ya se ha movido."
+    }
+  },
+  "solution": {
+    "title": "Lo que SORA hace diferente",
+    "subtitle": "Un solo lugar para capturar opiniones, tomar decisiones y seguir la ejecución.",
+    "input": {
+      "title": "Input estructurado de stakeholders",
+      "desc": "Cada voz se captura en un formato consistente — no más adivinar quién dijo qué."
+    },
+    "voting": {
+      "title": "Votación ponderada",
+      "desc": "Los expertos de dominio y stakeholders VIP llevan el peso que merecen."
+    },
+    "transparency": {
+      "title": "Decisiones transparentes",
+      "desc": "Todos ven cómo se tomaron las decisiones y por qué — generando confianza entre equipos."
+    },
+    "execution": {
+      "title": "Conectado a la ejecución",
+      "desc": "Las decisiones fluyen directamente a tus herramientas de gestión como ClickUp."
+    }
+  },
+  "howItWorks": {
+    "title": "Cómo funciona",
+    "subtitle": "Cuatro pasos simples del caos a la claridad.",
+    "step1": {
+      "title": "Captura solicitudes",
+      "desc": "Los stakeholders envían ideas y solicitudes a través de una interfaz simple."
+    },
+    "step2": {
+      "title": "Recoge input",
+      "desc": "Los stakeholders relevantes proporcionan feedback estructurado y votan."
+    },
+    "step3": {
+      "title": "Toma decisiones",
+      "desc": "Los líderes deciden con contexto completo — opiniones ponderadas, scores de impacto y tendencias."
+    },
+    "step4": {
+      "title": "Ejecuta con claridad",
+      "desc": "Los items aprobados fluyen a ejecución con trazabilidad completa hasta la decisión."
+    }
+  },
+  "valueProp": {
+    "title": "No es otra herramienta. Es un mejor proceso.",
+    "not1": "No es otra herramienta de votación",
+    "not2": "No es otro backlog",
+    "instead": "SORA conecta opiniones, decisiones y ejecución en un solo lugar."
+  },
+  "roles": {
+    "title": "Diseñado para ambos lados de la mesa",
+    "stakeholders": {
+      "title": "Para Stakeholders",
+      "item1": "Votación simple y guiada",
+      "item2": "Visibilidad clara de las decisiones",
+      "item3": "Menos reuniones, más impacto"
+    },
+    "leaders": {
+      "title": "Para Producto & Liderazgo",
+      "item1": "Decisiones más rápidas, basadas en datos",
+      "item2": "Mejor alineación entre equipos",
+      "item3": "Trazabilidad completa de opinión a ejecución"
+    }
+  },
+  "cta": {
+    "title": "Empieza a alinear tu equipo hoy",
+    "subtitle": "Únete a los equipos que han reemplazado el caos con claridad.",
+    "button": "Comenzar"
+  },
+  "footer": {
+    "tagline": "Shared Opinions for Rapid Adoption",
+    "copy": "© {{year}} SORA. Todos los derechos reservados."
+  }
+}

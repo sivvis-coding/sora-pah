@@ -14,7 +14,7 @@ export class AuthService {
    * Returns the full User record to be attached to request.
    */
   async validateOrCreateUser(payload: JwtPayload): Promise<User> {
-    const existing = this.usersService.findByOid(payload.oid);
+    const existing = await this.usersService.findByOid(payload.oid);
     if (existing) {
       return existing;
     }
@@ -24,6 +24,7 @@ export class AuthService {
       email: payload.email,
       name: payload.name,
       oid: payload.oid,
+      role: payload.role,   // honours role from dev token; defaults to 'standard' if absent
     });
   }
 }

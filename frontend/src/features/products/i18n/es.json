@@ -1,7 +1,17 @@
 {
   "title": "Productos",
-  "empty": "Aún no hay productos. Crea uno a través de la API.",
+  "empty": "Aún no hay productos.",
   "noDescription": "Sin descripción",
+  "admin": {
+    "create": "Crear",
+    "createTitle": "Crear Producto",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteTitle": "Eliminar Producto",
+    "deleteConfirm": "¿Seguro que deseas eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+    "fieldName": "Nombre",
+    "fieldDescription": "Descripción"
+  },
   "detail": {
     "title": "Detalle del Producto",
     "id": "ID del Producto",

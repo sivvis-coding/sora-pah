@@ -1,4 +1,42 @@
 {
   "title": "Users",
-  "comingSoon": "User management coming soon."
+  "col": {
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "vipLevel": "VIP Level",
+    "createdAt": "Created"
+  },
+  "role": {
+    "admin": "Admin",
+    "standard": "Standard"
+  },
+  "filter": {
+    "search": "Search by name or email…",
+    "all": "All roles",
+    "allDepts": "All departments",
+    "clear": "Clear filters",
+    "showing": "{{count}} of {{total}}",
+    "noResults": "No users match the current filters."
+  },
+  "invite": {
+    "button": "Invite User",
+    "title": "Invite from Azure AD",
+    "searchPlaceholder": "Search by name or email...",
+    "noResults": "No users found. Try a different search.",
+    "role": "Role",
+    "vipLevel": "VIP Level",
+    "back": "Back",
+    "confirm": "Invite"
+  },
+  "bulk": {
+    "selected": "{{count}} selected",
+    "setAdmin": "Set Admin",
+    "setStandard": "Set Standard",
+    "applyVip": "Apply"
+  },
+  "impersonate": {
+    "button": "View as"
+  }
 }
+

@@ -1,4 +1,42 @@
 {
   "title": "Usuarios",
-  "comingSoon": "Gestión de usuarios próximamente."
+  "col": {
+    "name": "Nombre",
+    "email": "Correo",
+    "role": "Rol",
+    "vipLevel": "Nivel VIP",
+    "createdAt": "Creado"
+  },
+  "role": {
+    "admin": "Admin",
+    "standard": "Estándar"
+  },
+  "filter": {
+    "search": "Buscar por nombre o correo…",
+    "all": "Todos los roles",
+    "allDepts": "Todos los departamentos",
+    "clear": "Limpiar filtros",
+    "showing": "{{count}} de {{total}}",
+    "noResults": "Ningún usuario coincide con los filtros actuales."
+  },
+  "invite": {
+    "button": "Invitar Usuario",
+    "title": "Invitar desde Azure AD",
+    "searchPlaceholder": "Buscar por nombre o correo...",
+    "noResults": "No se encontraron usuarios. Intenta otra búsqueda.",
+    "role": "Rol",
+    "vipLevel": "Nivel VIP",
+    "back": "Volver",
+    "confirm": "Invitar"
+  },
+  "bulk": {
+    "selected": "{{count}} seleccionados",
+    "setAdmin": "Hacer Admin",
+    "setStandard": "Hacer Estándar",
+    "applyVip": "Aplicar"
+  },
+  "impersonate": {
+    "button": "Ver como"
+  }
 }
+

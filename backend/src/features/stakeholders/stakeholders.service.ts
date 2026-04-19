@@ -1,46 +1,26 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { v4 as uuid } from 'uuid';
-import { StakeholderProfile } from './interfaces/stakeholder-profile.interface';
+import { Injectable } from '@nestjs/common';
+import { StakeholderRepository } from './repositories/stakeholder.repository';
 import { AssignStakeholderDto } from './dto/assign-stakeholder.dto';
 import { UpdateStakeholderDto } from './dto/update-stakeholder.dto';
+import { StakeholderProfile } from './interfaces/stakeholder-profile.interface';
 
 @Injectable()
 export class StakeholdersService {
-  private profiles: StakeholderProfile[] = [];
+  constructor(private readonly stakeholderRepo: StakeholderRepository) {}
 
-  findByProduct(productId: string): StakeholderProfile[] {
-    return this.profiles.filter((p) => p.productId === productId);
+  findByProduct(productId: string): Promise<StakeholderProfile[]> {
+    return this.stakeholderRepo.findByProduct(productId);
   }
 
-  assign(dto: AssignStakeholderDto): StakeholderProfile {
-    const existing = this.profiles.find(
-      (p) => p.userId === dto.userId && p.productId === dto.productId,
-    );
-    if (existing) {
-      throw new ConflictException('User is already a stakeholder for this product');
-    }
-
-    const profile: StakeholderProfile = {
-      id: uuid(),
-      userId: dto.userId,
-      productId: dto.productId,
-      weight: dto.weight,
-      isVIP: dto.isVIP ?? false,
-    };
-    this.profiles.push(profile);
-    return profile;
+  assign(dto: AssignStakeholderDto): Promise<StakeholderProfile> {
+    return this.stakeholderRepo.assign(dto);
   }
 
-  updateWeight(id: string, dto: UpdateStakeholderDto): StakeholderProfile {
-    const profile = this.profiles.find((p) => p.id === id);
-    if (!profile) throw new NotFoundException(`Stakeholder profile ${id} not found`);
-    if (dto.weight !== undefined) profile.weight = dto.weight;
-    return profile;
+  updateWeight(id: string, productId: string, dto: UpdateStakeholderDto): Promise<StakeholderProfile> {
+    return this.stakeholderRepo.updateWeight(id, productId, dto);
   }
 
-  remove(id: string): void {
-    const index = this.profiles.findIndex((p) => p.id === id);
-    if (index === -1) throw new NotFoundException(`Stakeholder profile ${id} not found`);
-    this.profiles.splice(index, 1);
+  remove(id: string, productId: string): Promise<void> {
+    return this.stakeholderRepo.softDelete(id, productId);
   }
 }

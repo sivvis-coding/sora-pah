@@ -1,12 +1,24 @@
 {
   "app": {},
   "nav": {
+    "home": "Home",
     "products": "Products",
     "users": "Users"
   },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
-    "errorLoadProducts": "Failed to load products"
+    "errorLoadProducts": "Failed to load products",
+    "cancel": "Cancel"
+  },
+  "mode": {
+    "admin": "Admin",
+    "stakeholder": "Stakeholder",
+    "switchTooltip": "Switch view mode"
+  },
+  "impersonate": {
+    "banner": "You are viewing as <strong>{{name}}</strong>",
+    "stop": "Exit impersonation",
+    "tooltip": "View as this user"
   }
 }

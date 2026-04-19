@@ -1,0 +1,94 @@
+{
+  "hero": {
+    "headline": "From opinions to decisions — fast.",
+    "subheadline": "SORA helps product teams align stakeholders, prioritize smarter, and move faster.",
+    "cta": "Get Started",
+    "ctaSecondary": "See How It Works"
+  },
+  "problem": {
+    "title": "Sound familiar?",
+    "subtitle": "Most teams struggle with the same patterns over and over.",
+    "voices": {
+      "title": "Too many voices",
+      "desc": "Everyone has an opinion, but there's no structured way to capture and weigh them."
+    },
+    "structure": {
+      "title": "No structure",
+      "desc": "Decisions happen in Slack threads, emails, and meetings — then get lost."
+    },
+    "slow": {
+      "title": "Slow execution",
+      "desc": "By the time you decide, the window of opportunity has already moved."
+    }
+  },
+  "solution": {
+    "title": "What SORA does differently",
+    "subtitle": "A single place to capture opinions, make decisions, and track execution.",
+    "input": {
+      "title": "Structured stakeholder input",
+      "desc": "Every voice is captured in a consistent format — no more guessing who said what."
+    },
+    "voting": {
+      "title": "Weighted voting",
+      "desc": "Domain experts and VIP stakeholders carry the weight they deserve."
+    },
+    "transparency": {
+      "title": "Transparent decisions",
+      "desc": "Everyone sees how decisions were made and why — building trust across teams."
+    },
+    "execution": {
+      "title": "Connected to execution",
+      "desc": "Decisions flow directly into your project management tools like ClickUp."
+    }
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "subtitle": "Four simple steps from chaos to clarity.",
+    "step1": {
+      "title": "Capture requests",
+      "desc": "Stakeholders submit ideas and requests through a simple interface."
+    },
+    "step2": {
+      "title": "Gather input",
+      "desc": "Relevant stakeholders provide structured feedback and vote."
+    },
+    "step3": {
+      "title": "Make decisions",
+      "desc": "Leaders decide with full context — weighted opinions, impact scores, and trends."
+    },
+    "step4": {
+      "title": "Execute with clarity",
+      "desc": "Approved items flow into execution with full traceability back to the decision."
+    }
+  },
+  "valueProp": {
+    "title": "Not another tool. A better process.",
+    "not1": "Not another voting tool",
+    "not2": "Not another backlog tool",
+    "instead": "SORA connects opinions, decisions, and execution in one place."
+  },
+  "roles": {
+    "title": "Built for both sides of the table",
+    "stakeholders": {
+      "title": "For Stakeholders",
+      "item1": "Simple, guided voting",
+      "item2": "Clear visibility into decisions",
+      "item3": "Fewer meetings, more impact"
+    },
+    "leaders": {
+      "title": "For Product & Leadership",
+      "item1": "Faster, data-backed decisions",
+      "item2": "Better alignment across teams",
+      "item3": "Full traceability from opinion to execution"
+    }
+  },
+  "cta": {
+    "title": "Start aligning your team today",
+    "subtitle": "Join the teams that have replaced chaos with clarity.",
+    "button": "Get Started"
+  },
+  "footer": {
+    "tagline": "Shared Opinions for Rapid Adoption",
+    "copy": "© {{year}} SORA. All rights reserved."
+  }
+}

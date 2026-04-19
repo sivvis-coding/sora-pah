@@ -1,12 +1,24 @@
 {
   "app": {},
   "nav": {
+    "home": "Inicio",
     "products": "Productos",
     "users": "Usuarios"
   },
   "common": {
     "loading": "Cargando...",
     "error": "Ocurrió un error",
-    "errorLoadProducts": "Error al cargar los productos"
+    "errorLoadProducts": "Error al cargar los productos",
+    "cancel": "Cancelar"
+  },
+  "mode": {
+    "admin": "Admin",
+    "stakeholder": "Stakeholder",
+    "switchTooltip": "Cambiar modo de vista"
+  },
+  "impersonate": {
+    "banner": "Estás viendo como <strong>{{name}}</strong>",
+    "stop": "Salir de la suplantación",
+    "tooltip": "Ver como este usuario"
   }
 }

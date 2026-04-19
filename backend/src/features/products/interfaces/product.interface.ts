@@ -20,4 +20,6 @@ export interface Product {
   description: string;
   ownerId: string;
   createdAt: string;
+  isDeleted: boolean;
+  deletedAt: string | null;
 }

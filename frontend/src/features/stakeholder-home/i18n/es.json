@@ -1,0 +1,36 @@
+{
+  "hero": {
+    "greeting": "Bienvenido, {{name}}.",
+    "subtitle": "Tu perspectiva define qué se construye a continuación. Aquí puedes revisar las prioridades de producto, opinar sobre lo que más importa y hacer que tu voz cuente.",
+    "cta": "Explorar Productos"
+  },
+  "section": {
+    "whyHere": "Tu propósito aquí",
+    "yourRole": "Por qué tu opinión importa"
+  },
+  "card": {
+    "align": {
+      "title": "Alineación compartida",
+      "desc": "SORA reúne todas las voces de los stakeholders en una visión única y transparente de lo que construye la organización y por qué."
+    },
+    "vote": {
+      "title": "Influye en las prioridades",
+      "desc": "Tu opinión ponderada impacta directamente en qué productos e iniciativas avanzan — tu rol te da poder de decisión real."
+    },
+    "products": {
+      "title": "Catálogo de productos en vivo",
+      "desc": "Explora el portafolio completo de productos activos, comprende su alcance y descubre dónde tu participación es más valiosa."
+    },
+    "impact": {
+      "title": "Impacto medible",
+      "desc": "Ve cómo el aporte de los stakeholders se traduce en cambios de roadmap. Cada voto mueve la aguja en los plazos de entrega reales."
+    }
+  },
+  "cta": {
+    "strip": {
+      "title": "¿Listo para opinar?",
+      "desc": "Explora el catálogo de productos y empieza a contribuir con tus prioridades.",
+      "button": "Ver Productos"
+    }
+  }
+}

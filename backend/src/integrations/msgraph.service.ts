@@ -1,50 +1,137 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { ClientSecretCredential } from '@azure/identity';
+import { Client } from '@microsoft/microsoft-graph-client';
+import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
+import 'isomorphic-fetch';
 
-/**
- * Placeholder for Microsoft Graph API integration.
- *
- * Likely use cases in SORA:
- *   - Enrich user profiles beyond what the JWT provides (photo, department, manager)
- *   - Read Azure AD group membership to derive roles
- *   - Send notifications via Teams webhook
- *
- * Authentication will use the On-Behalf-Of (OBO) flow:
- *   the user's Azure AD access token is exchanged for a Graph-scoped token.
- *
- * Required env vars (future):
- *   AZURE_AD_TENANT_ID
- *   AZURE_AD_CLIENT_ID
- *   AZURE_AD_CLIENT_SECRET
- */
+export interface AadUser {
+  oid: string;
+  displayName: string;
+  mail: string | null;
+  userPrincipalName: string;
+  jobTitle: string | null;
+  department: string | null;
+}
+
 @Injectable()
 export class MsGraphService {
   private readonly logger = new Logger(MsGraphService.name);
+  private client: Client;
 
-  /**
-   * Fetch extended profile for the authenticated user.
-   * Returns fields not present in the JWT: photo, department, jobTitle, manager.
-   */
-  async getUserProfile(_oid: string): Promise<Record<string, unknown>> {
-    this.logger.warn('MsGraphService.getUserProfile() — not implemented yet');
-    return {};
+  constructor(private config: ConfigService) {
+    const tenantId = this.config.get<string>('MSGRAPH_TENANT_ID')!;
+    const clientId = this.config.get<string>('MSGRAPH_CLIENT_ID')!;
+    const clientSecret = this.config.get<string>('MSGRAPH_CLIENT_SECRET')!;
+
+    const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+    const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+      scopes: ['https://graph.microsoft.com/.default'],
+    });
+
+    this.client = Client.initWithMiddleware({ authProvider });
   }
 
   /**
-   * Fetch the AAD group memberships for a user.
-   * Used to map AAD groups → SORA roles (admin / standard).
+   * Search Azure AD users by email (mail or userPrincipalName).
+   * Uses $filter with startsWith for partial matching.
    */
-  async getUserGroups(_oid: string): Promise<string[]> {
-    this.logger.warn('MsGraphService.getUserGroups() — not implemented yet');
-    return [];
+  async searchUsers(search: string): Promise<AadUser[]> {
+    try {
+      const response = await this.client
+        .api('/users')
+        .filter(
+          `startsWith(mail,'${search}') or startsWith(userPrincipalName,'${search}') or startsWith(displayName,'${search}')`,
+        )
+        .select('id,displayName,mail,userPrincipalName,jobTitle,department')
+        .top(10)
+        .get();
+
+      return (response.value || []).map((u: any) => ({
+        oid: u.id,
+        displayName: u.displayName,
+        mail: u.mail,
+        userPrincipalName: u.userPrincipalName,
+        jobTitle: u.jobTitle,
+        department: u.department,
+      }));
+    } catch (err: any) {
+      this.logger.error(`Graph searchUsers failed: ${err.message}`);
+      return [];
+    }
   }
 
   /**
-   * Send an Adaptive Card notification to a Teams channel.
+   * Get a single user profile by OID.
    */
-  async sendTeamsNotification(
-    _webhookUrl: string,
-    _payload: Record<string, unknown>,
-  ): Promise<void> {
-    this.logger.warn('MsGraphService.sendTeamsNotification() — not implemented yet');
+  async getUserProfile(oid: string): Promise<AadUser | null> {
+    try {
+      const u = await this.client
+        .api(`/users/${oid}`)
+        .select('id,displayName,mail,userPrincipalName,jobTitle,department')
+        .get();
+
+      return {
+        oid: u.id,
+        displayName: u.displayName,
+        mail: u.mail,
+        userPrincipalName: u.userPrincipalName,
+        jobTitle: u.jobTitle,
+        department: u.department,
+      };
+    } catch (err: any) {
+      this.logger.error(`Graph getUserProfile failed for ${oid}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get user photo as base64-encoded string.
+   * Returns null if no photo is available.
+   */
+  async getUserPhoto(oid: string): Promise<string | null> {
+    try {
+      const response = await this.client
+        .api(`/users/${oid}/photo/$value`)
+        .responseType('arraybuffer' as any)
+        .get();
+
+      const buffer = Buffer.from(response);
+      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    } catch (err: any) {
+      // 404 = no photo set, not an error
+      if (err.statusCode === 404) return null;
+      this.logger.warn(`Graph getUserPhoto failed for ${oid}: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Resolve a user by email — finds exact match on mail or userPrincipalName.
+   */
+  async resolveByEmail(email: string): Promise<AadUser | null> {
+    try {
+      const response = await this.client
+        .api('/users')
+        .filter(`mail eq '${email}' or userPrincipalName eq '${email}'`)
+        .select('id,displayName,mail,userPrincipalName,jobTitle,department')
+        .top(1)
+        .get();
+
+      const user = response.value?.[0];
+      if (!user) return null;
+
+      return {
+        oid: user.id,
+        displayName: user.displayName,
+        mail: user.mail,
+        userPrincipalName: user.userPrincipalName,
+        jobTitle: user.jobTitle,
+        department: user.department,
+      };
+    } catch (err: any) {
+      this.logger.error(`Graph resolveByEmail failed: ${err.message}`);
+      return null;
+    }
   }
 }

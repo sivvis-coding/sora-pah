@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { UserRole } from '../../../common/constants/user-role';
 
 export class CreateUserDto {
   @IsEmail()
@@ -14,5 +15,5 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
-  role?: 'admin' | 'standard';
+  role?: UserRole;
 }

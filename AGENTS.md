@@ -118,3 +118,29 @@ main.tsx          # providers: Router, QueryClient, ThemeProvider, AuthProvider
 - No linter/prettier config exists. Don't run `pnpm lint` without checking first.
 - Backend uses `class-validator` with `whitelist: true, forbidNonWhitelisted: true` globally — unknown DTO fields are rejected.
 - Frontend `tsconfig.json` has `"noEmit": true` — TypeScript checking only, Vite handles emit.
+
+## Responsive design rules
+
+The frontend has two audience modes with different responsive requirements:
+
+### Stakeholder mode — MUST be 100% mobile-friendly
+All stakeholder-facing screens (StakeholderHome, ProductList in stakeholder mode, ProductDetail) MUST work flawlessly on:
+- Small phones (320px width)
+- Normal phones (375–414px)
+- Tablets (768px)
+- Laptops (1024px–1440px)
+
+### Admin mode — reasonable responsiveness
+Admin screens (UserList, ProductList in admin mode) should be usable down to tablet (768px) and degrade gracefully on phones. No pixel-perfect mobile needed, but nothing should overflow or be inaccessible.
+
+### Implementation patterns
+- **MainLayout**: Uses a responsive drawer — `permanent` on `>=900px`, `temporary` (hamburger menu) on `<900px`. Breakpoint: `theme.breakpoints.down('md')`.
+- **AppBar controls**: On small screens (`<600px`), non-essential controls (language toggle) collapse into the drawer.
+- **Dialogs**: Use `fullScreen` on `xs` breakpoint (`useMediaQuery(theme.breakpoints.down('sm'))`) for better mobile UX.
+- **Grid breakpoints**: Standard pattern is `xs={12} sm={6} md={4}` for card grids. For stakeholder value cards: `xs={12} sm={6} md={3}`.
+- **Typography scaling**: Hero headings use `{ xs: 'h5', md: 'h3' }` via `sx` font-size breakpoints.
+- **Spacing**: Use `sx` object breakpoint syntax — e.g. `px: { xs: 2, md: 6 }`, `py: { xs: 3, md: 7 }`.
+- **FABs**: Position `bottom: { xs: 16, md: 32 }, right: { xs: 16, md: 32 }`.
+- **Filter bars / toolbars**: `flexWrap: 'wrap'` always; on `<600px` children go full-width.
+- **Never use fixed widths** on content containers — always `maxWidth` + percentage/flex.
+- **Touch targets**: Minimum 44px height for interactive elements on mobile.

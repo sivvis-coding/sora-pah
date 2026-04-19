@@ -1,0 +1,36 @@
+{
+  "hero": {
+    "greeting": "Welcome, {{name}}.",
+    "subtitle": "Your perspective shapes what gets built next. Here you can review product priorities, weigh in on what matters most, and make your voice count.",
+    "cta": "Explore Products"
+  },
+  "section": {
+    "whyHere": "Your purpose here",
+    "yourRole": "Why your input matters"
+  },
+  "card": {
+    "align": {
+      "title": "Shared alignment",
+      "desc": "SORA brings together every stakeholder voice into a single, transparent view of what the organization is building and why."
+    },
+    "vote": {
+      "title": "Influence priorities",
+      "desc": "Your weighted opinion directly impacts which products and initiatives move forward — your role gives you real decision power."
+    },
+    "products": {
+      "title": "Live product catalog",
+      "desc": "Browse the full portfolio of active products, understand their scope, and see where your involvement is most valuable."
+    },
+    "impact": {
+      "title": "Measurable impact",
+      "desc": "See how stakeholder input translates into roadmap changes. Every vote moves the needle on real delivery timelines."
+    }
+  },
+  "cta": {
+    "strip": {
+      "title": "Ready to weigh in?",
+      "desc": "Browse the product catalog and start contributing your priorities.",
+      "button": "View Products"
+    }
+  }
+}

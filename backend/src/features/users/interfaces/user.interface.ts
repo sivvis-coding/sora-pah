@@ -1,3 +1,5 @@
+import { UserRole } from '../../../common/constants/user-role';
+
 /**
  * User entity.
  *
@@ -21,7 +23,15 @@ export interface User {
   oid: string;
   email: string;
   name: string;
-  role: 'admin' | 'standard';
+  role: UserRole;
   vipLevel: number;
   createdAt: string;
+  isDeleted: boolean;
+  deletedAt: string | null;
+  /** Base64-encoded profile photo from MS Graph (cached) */
+  photoBase64?: string;
+  department?: string;
+  jobTitle?: string;
+  /** Whether the user has dismissed the onboarding landing page */
+  hasSeenLanding: boolean;
 }

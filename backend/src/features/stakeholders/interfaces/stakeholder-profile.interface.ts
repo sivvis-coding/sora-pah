@@ -20,4 +20,6 @@ export interface StakeholderProfile {
   productId: string;
   weight: number;
   isVIP: boolean;
+  isDeleted: boolean;
+  deletedAt: string | null;
 }

@@ -1,7 +1,17 @@
 {
   "title": "Products",
-  "empty": "No products yet. Create one via the API.",
+  "empty": "No products yet.",
   "noDescription": "No description",
+  "admin": {
+    "create": "Create",
+    "createTitle": "Create Product",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete Product",
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "fieldName": "Name",
+    "fieldDescription": "Description"
+  },
   "detail": {
     "title": "Product Detail",
     "id": "Product ID",
