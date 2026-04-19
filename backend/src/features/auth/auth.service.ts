@@ -24,7 +24,9 @@ export class AuthService {
       email: payload.email,
       name: payload.name,
       oid: payload.oid,
-      role: payload.role,   // honours role from dev token; defaults to 'standard' if absent
+      role: payload.role,
+      department: payload.department,
+      jobTitle: payload.jobTitle,
     });
   }
 }

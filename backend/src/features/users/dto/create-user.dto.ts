@@ -16,4 +16,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   role?: UserRole;
+
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @IsOptional()
+  @IsString()
+  jobTitle?: string;
 }

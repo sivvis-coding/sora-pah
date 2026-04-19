@@ -39,6 +39,22 @@ export const cosmosDatabaseProvider = {
         id: 'stakeholders',
         partitionKey: { paths: ['/productId'] },
       }),
+      database.containers.createIfNotExists({
+        id: 'ideas',
+        partitionKey: { paths: ['/id'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'votes',
+        partitionKey: { paths: ['/ideaId'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'categories',
+        partitionKey: { paths: ['/id'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'comments',
+        partitionKey: { paths: ['/ideaId'] },
+      }),
     ]);
 
     return database;

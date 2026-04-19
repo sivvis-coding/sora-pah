@@ -1,0 +1,97 @@
+{
+  "title": "Ideas",
+  "empty": "No ideas yet. Be the first to share one!",
+  "status": {
+    "open": "Open",
+    "in_review": "In Review",
+    "converted": "Converted"
+  },
+  "list": {
+    "search": "Search ideas...",
+    "all": "All",
+    "allTab": "All Ideas",
+    "mine": "My ideas",
+    "trending": "Trending",
+    "trendingDays": "last {{days}} days",
+    "mostSupported": "Most Supported",
+    "supporters_one": "1 person supports this",
+    "supporters_other": "{{count}} people support this",
+    "supporters_zero": "No support yet",
+    "shared": "Shared {{time}}",
+    "support": "Support",
+    "supported": "Supported",
+    "noCategory": "Uncategorized",
+    "noResults": "No ideas match your search",
+    "noTrending": "No trending ideas right now",
+    "emptyMine": "You haven't shared any ideas yet",
+    "by": "by",
+    "sharedBy": "Shared by"
+  },
+  "create": {
+    "fab": "Share an idea",
+    "optional": "Optional",
+    "continue": "Continue",
+    "skip": "Skip",
+    "back": "Back",
+    "submit": "Share idea",
+    "categoryNotSure": "Not sure yet",
+    "q1": {
+      "heading": "What do you need?",
+      "helper": "Describe what you need, what's frustrating you, or what you'd like to improve.",
+      "placeholder": "e.g. I'd love a way to export my reports without having to download them manually every time..."
+    },
+    "q2": {
+      "heading": "Why is this important to you?",
+      "helper": "Does it save time, reduce errors, help customers, or something else?",
+      "placeholder": "e.g. It takes me 30 minutes every Friday to do this manually. It feels like wasted time..."
+    },
+    "q3": {
+      "heading": "Do you have an idea of how this could work?",
+      "helper": "No pressure — even a rough sketch of an idea helps.",
+      "placeholder": "e.g. Maybe a button in the dashboard that generates a PDF automatically..."
+    },
+    "q4": {
+      "heading": "Where do you think this belongs?",
+      "helper": "If you're not sure, that's totally fine — just pick \"Not sure yet\"."
+    },
+    "review": {
+      "heading": "Looks good!",
+      "helper": "Here's what you're sharing. You can go back and change anything.",
+      "youWant": "You want to",
+      "because": "Because",
+      "youImagine": "You imagine",
+      "category": "Area"
+    },
+    "intent": {
+      "bug": {
+        "message": "This sounds like it might be a bug.",
+        "subtext": "If something's broken or not working as expected, our support team can help you faster.",
+        "primary": "Report in Freshservice",
+        "secondary": "Continue as idea anyway"
+      },
+      "help": {
+        "message": "Sounds like you need some help.",
+        "subtext": "If you have a question or need guidance, our help section might have what you're looking for.",
+        "primary": "Go to Help section",
+        "secondary": "Continue as idea anyway"
+      }
+    }
+  },
+  "detail": {
+    "theNeed": "The need",
+    "whyMatters": "Why this matters",
+    "possibleApproach": "A possible approach",
+    "sharedBy": "Shared by",
+    "supportersStatement_zero": "No one has supported this yet — be the first",
+    "supportersStatement_one": "1 person supports this idea",
+    "supportersStatement_other": "{{count}} people support this idea",
+    "supportAction": "Support this idea",
+    "removeSupport": "You're supporting this",
+    "conversation": "Conversation",
+    "addThoughts": "Add your thoughts...",
+    "noConversation": "No conversation yet. Share what you think about this idea.",
+    "unknownUser": "Unknown user",
+    "changeStatus": "Change status",
+    "adminPanel": "Admin"
+  }
+}

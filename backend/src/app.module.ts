@@ -8,6 +8,8 @@ import { ProductsModule } from './features/products/products.module';
 import { StakeholdersModule } from './features/stakeholders/stakeholders.module';
 import { GraphModule } from './features/graph/graph.module';
 import { HealthModule } from './features/health/health.module';
+import { IdeasModule } from './features/ideas/ideas.module';
+import { CategoriesModule } from './features/categories/categories.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -20,6 +22,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     ProductsModule,
     StakeholdersModule,
     GraphModule,
+    IdeasModule,
+    CategoriesModule,
     HealthModule,
   ],
   providers: [

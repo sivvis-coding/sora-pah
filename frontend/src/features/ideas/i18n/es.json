@@ -1,0 +1,97 @@
+{
+  "title": "Ideas",
+  "empty": "Aún no hay ideas. ¡Sé el primero en compartir una!",
+  "status": {
+    "open": "Abierta",
+    "in_review": "En revisión",
+    "converted": "Convertida"
+  },
+  "list": {
+    "search": "Buscar ideas...",
+    "all": "Todas",
+    "allTab": "Todas las ideas",
+    "mine": "Mis ideas",
+    "trending": "Tendencia",
+    "trendingDays": "últimos {{days}} días",
+    "mostSupported": "Más apoyadas",
+    "supporters_one": "1 persona apoya esto",
+    "supporters_other": "{{count}} personas apoyan esto",
+    "supporters_zero": "Sin apoyo aún",
+    "shared": "Compartida {{time}}",
+    "support": "Apoyar",
+    "supported": "Apoyada",
+    "noCategory": "Sin categoría",
+    "noResults": "Ninguna idea coincide con tu búsqueda",
+    "noTrending": "No hay ideas en tendencia ahora mismo",
+    "emptyMine": "Aún no has compartido ideas",
+    "by": "por",
+    "sharedBy": "Compartida por"
+  },
+  "create": {
+    "fab": "Compartir una idea",
+    "optional": "Opcional",
+    "continue": "Continuar",
+    "skip": "Omitir",
+    "back": "Atrás",
+    "submit": "Compartir idea",
+    "categoryNotSure": "No estoy seguro/a",
+    "q1": {
+      "heading": "¿Qué necesitas?",
+      "helper": "Describe lo que necesitas, lo que te frustra o lo que quisieras mejorar.",
+      "placeholder": "ej. Me gustaría poder exportar mis reportes sin tener que descargarlos manualmente cada vez..."
+    },
+    "q2": {
+      "heading": "¿Por qué es importante para ti?",
+      "helper": "¿Ahorra tiempo, reduce errores, ayuda a clientes, o algo más?",
+      "placeholder": "ej. Me toma 30 minutos cada viernes hacer esto manualmente. Siento que es tiempo perdido..."
+    },
+    "q3": {
+      "heading": "¿Tienes alguna idea de cómo podría funcionar?",
+      "helper": "Sin presión — incluso un boceto vago de idea es útil.",
+      "placeholder": "ej. Quizás un botón en el dashboard que genere un PDF automáticamente..."
+    },
+    "q4": {
+      "heading": "¿Dónde crees que pertenece esto?",
+      "helper": "Si no estás seguro/a, está bien — simplemente elige \"No estoy seguro/a\"."
+    },
+    "review": {
+      "heading": "¡Luce bien!",
+      "helper": "Esto es lo que vas a compartir. Puedes volver y cambiar lo que quieras.",
+      "youWant": "Quieres",
+      "because": "Porque",
+      "youImagine": "Imaginas",
+      "category": "Área"
+    },
+    "intent": {
+      "bug": {
+        "message": "Esto suena a que podría ser un bug.",
+        "subtext": "Si algo está roto o no funciona como se espera, nuestro equipo de soporte puede ayudarte más rápido.",
+        "primary": "Reportar en Freshservice",
+        "secondary": "Continuar como idea de todas formas"
+      },
+      "help": {
+        "message": "Parece que necesitas ayuda con algo.",
+        "subtext": "Si tienes una pregunta o necesitas orientación, nuestra sección de ayuda podría tener lo que buscas.",
+        "primary": "Ir a la sección de Ayuda",
+        "secondary": "Continuar como idea de todas formas"
+      }
+    }
+  },
+  "detail": {
+    "theNeed": "La necesidad",
+    "whyMatters": "Por qué importa",
+    "possibleApproach": "Un posible enfoque",
+    "sharedBy": "Compartida por",
+    "supportersStatement_zero": "Nadie ha apoyado esto aún — sé el primero",
+    "supportersStatement_one": "1 persona apoya esta idea",
+    "supportersStatement_other": "{{count}} personas apoyan esta idea",
+    "supportAction": "Apoyar esta idea",
+    "removeSupport": "Estás apoyando esto",
+    "conversation": "Conversación",
+    "addThoughts": "Comparte lo que piensas...",
+    "noConversation": "Sin conversación aún. Comparte lo que piensas sobre esta idea.",
+    "unknownUser": "Usuario desconocido",
+    "changeStatus": "Cambiar estado",
+    "adminPanel": "Admin"
+  }
+}

@@ -7,7 +7,12 @@ import StakeholderHome from './features/stakeholder-home/StakeholderHome';
 import { useAuth } from './features/auth/AuthContext';
 import { useMode } from './shared/ModeContext';
 import { productRoutes } from './features/products/routes';
+import { ideaRoutes } from './features/ideas/routes';
+import { categoryRoutes } from './features/categories/routes';
 import { userRoutes } from './features/users/routes';
+import { decisionRoutes } from './features/decisions/routes';
+import { helpRoutes } from './features/help/routes';
+import { myActivityRoutes } from './features/my-activity/routes';
 import { AppMode } from './shared/constants';
 
 function PublicRoute({ element }: { element: React.ReactElement }) {
@@ -19,30 +24,28 @@ function PublicRoute({ element }: { element: React.ReactElement }) {
  * Central route config — composed from feature route slices.
  *
  * New user (hasSeenLanding=false):  /welcome → LandingPage
- * Stakeholder mode:  /  → StakeholderHome landing, no users route
- * Admin mode:        /  → redirect to /products, users route included
+ * Both modes:  /  → StakeholderHome (activity feed)
+ * Admin mode:  extra routes for categories + users
  */
 function AppRoutes() {
   const { isAuthenticated, isNewUser } = useAuth();
   const { mode } = useMode();
 
-  const indexRoute: RouteObject =
-    mode === AppMode.STAKEHOLDER
-      ? { index: true, element: <StakeholderHome /> }
-      : { index: true, element: <Navigate to="/products" replace /> };
-
   const routes: RouteObject[] = [
     { path: '/login', element: <PublicRoute element={<LoginPage />} /> },
-    // Landing page for new users — standalone, no MainLayout
     { path: '/welcome', element: isAuthenticated ? <LandingPage /> : <Navigate to="/login" replace /> },
     {
       element: isAuthenticated
         ? (isNewUser ? <Navigate to="/welcome" replace /> : <MainLayout />)
         : <Navigate to="/login" replace />,
       children: [
-        indexRoute,
+        { index: true, element: <StakeholderHome /> },
         ...productRoutes,
-        ...(mode === AppMode.ADMIN ? userRoutes : []),
+        ...ideaRoutes,
+        ...decisionRoutes,
+        ...helpRoutes,
+        ...myActivityRoutes,
+        ...(mode === AppMode.ADMIN ? [...categoryRoutes, ...userRoutes] : []),
       ],
     },
   ];

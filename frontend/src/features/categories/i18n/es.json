@@ -1,0 +1,38 @@
+{
+  "title": "Categorías",
+  "subtitle": "Gestiona las categorías de ideas mostradas a los stakeholders al enviar.",
+  "empty": "No hay categorías aún. Agrega la primera.",
+  "col": {
+    "name": "Nombre",
+    "description": "Descripción",
+    "color": "Color",
+    "order": "Orden",
+    "status": "Estado"
+  },
+  "status": {
+    "active": "Activa",
+    "inactive": "Inactiva"
+  },
+  "add": {
+    "button": "Agregar categoría",
+    "title": "Agregar categoría",
+    "fieldName": "Nombre",
+    "fieldDescription": "Descripción (opcional)",
+    "fieldColor": "Color (hex, p.ej. #4CAF50)",
+    "fieldOrder": "Orden de aparición",
+    "save": "Guardar"
+  },
+  "edit": {
+    "title": "Editar categoría",
+    "save": "Guardar cambios"
+  },
+  "delete": {
+    "title": "Eliminar categoría",
+    "confirm": "¿Estás seguro de eliminar \"{{name}}\"?",
+    "button": "Eliminar"
+  },
+  "toggle": {
+    "activate": "Activar",
+    "deactivate": "Desactivar"
+  }
+}

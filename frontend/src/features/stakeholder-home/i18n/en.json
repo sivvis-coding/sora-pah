@@ -1,36 +1,30 @@
 {
-  "hero": {
-    "greeting": "Welcome, {{name}}.",
-    "subtitle": "Your perspective shapes what gets built next. Here you can review product priorities, weigh in on what matters most, and make your voice count.",
-    "cta": "Explore Products"
+  "greeting": "Welcome back, {{name}}",
+  "pulse": {
+    "ideasThisWeek_zero": "No new ideas this week",
+    "ideasThisWeek_one": "1 new idea this week",
+    "ideasThisWeek_other": "{{count}} new ideas this week",
+    "totalSupporters_zero": "No supporters yet",
+    "totalSupporters_one": "1 supporter total",
+    "totalSupporters_other": "{{count}} supporters total",
+    "totalIdeas_one": "1 idea shared",
+    "totalIdeas_other": "{{count}} ideas shared"
   },
-  "section": {
-    "whyHere": "Your purpose here",
-    "yourRole": "Why your input matters"
+  "trending": {
+    "title": "Trending this week",
+    "empty": "No trending ideas this week",
+    "supporters_one": "1 supporter",
+    "supporters_other": "{{count}} supporters"
   },
-  "card": {
-    "align": {
-      "title": "Shared alignment",
-      "desc": "SORA brings together every stakeholder voice into a single, transparent view of what the organization is building and why."
-    },
-    "vote": {
-      "title": "Influence priorities",
-      "desc": "Your weighted opinion directly impacts which products and initiatives move forward — your role gives you real decision power."
-    },
-    "products": {
-      "title": "Live product catalog",
-      "desc": "Browse the full portfolio of active products, understand their scope, and see where your involvement is most valuable."
-    },
-    "impact": {
-      "title": "Measurable impact",
-      "desc": "See how stakeholder input translates into roadmap changes. Every vote moves the needle on real delivery timelines."
-    }
+  "recent": {
+    "title": "Recent activity",
+    "empty": "Nothing here yet. Once people start sharing ideas, you'll see the activity here.",
+    "newIdea": "shared an idea",
+    "popularIdea": "is gaining support",
+    "showMore": "Show more"
   },
   "cta": {
-    "strip": {
-      "title": "Ready to weigh in?",
-      "desc": "Browse the product catalog and start contributing your priorities.",
-      "button": "View Products"
-    }
+    "shareIdea": "Share an idea",
+    "exploreIdeas": "Explore ideas"
   }
 }

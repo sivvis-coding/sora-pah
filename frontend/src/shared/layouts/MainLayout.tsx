@@ -13,6 +13,9 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
+  ListItemAvatar,
   Toolbar,
   ToggleButtonGroup,
   ToggleButton,
@@ -27,13 +30,13 @@ import {
   Person as StakeholderIcon,
   Menu as MenuIcon,
   VisibilityOff as ExitImpersonateIcon,
+  HelpOutline as HelpIcon,
+  History as ActivityIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useMode } from '../ModeContext';
-import { adminNavItems, stakeholderNavItems } from '../nav';
-import { APP_NAME, DRAWER_WIDTH, AppMode } from '../constants';
-
-const BRAND_NAME = APP_NAME;
+import { mainNavItems, adminSectionItems, secondaryNavItems } from '../nav';
+import { APP_NAME, DRAWER_WIDTH, RAIL_WIDTH, AppMode } from '../constants';
 
 export default function MainLayout() {
   const navigate = useNavigate();
@@ -48,8 +51,12 @@ export default function MainLayout() {
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));      // <600px
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [avatarMenuAnchor, setAvatarMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const navItems = mode === AppMode.ADMIN ? adminNavItems : stakeholderNavItems;
+  const isAdmin = mode === AppMode.ADMIN;
+
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const handleLanguageChange = (_: React.MouseEvent, newLang: string | null) => {
     if (newLang) i18n.changeLanguage(newLang);
@@ -74,7 +81,7 @@ export default function MainLayout() {
     if (isMobile) setDrawerOpen(false);
   };
 
-  // ─── Language toggle (reused in AppBar and drawer footer) ──────────────
+  // ─── Language toggle ───────────────────────────────────────────────────
   const langToggle = (
     <ToggleButtonGroup
       value={i18n.language?.startsWith('es') ? 'es' : 'en'}
@@ -100,27 +107,194 @@ export default function MainLayout() {
     </ToggleButtonGroup>
   );
 
-  // ─── Drawer content ────────────────────────────────────────────────────
-  const drawerContent = (
+  // ─── Desktop icon rail ─────────────────────────────────────────────────
+  const railContent = (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        height: '100%',
+        pt: 1,
+      }}
+    >
+      <Toolbar />
+
+      {/* Main nav items */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.75, width: '100%' }}>
+        {mainNavItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <Tooltip key={item.path} title={t(item.labelKey)} placement="right" arrow>
+              <Box
+                onClick={() => navigate(item.path)}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 0.25,
+                  py: 1,
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  bgcolor: active ? 'action.selected' : 'transparent',
+                  color: active ? 'primary.main' : 'text.secondary',
+                  transition: 'background-color 0.15s, color 0.15s',
+                  '&:hover': {
+                    bgcolor: active ? 'action.selected' : 'action.hover',
+                  },
+                }}
+              >
+                {React.cloneElement(item.icon, { sx: { fontSize: 22 } })}
+                <Typography
+                  sx={{
+                    fontSize: '0.6rem',
+                    fontWeight: active ? 700 : 500,
+                    lineHeight: 1,
+                    textAlign: 'center',
+                    userSelect: 'none',
+                  }}
+                >
+                  {t(item.labelKey)}
+                </Typography>
+              </Box>
+            </Tooltip>
+          );
+        })}
+      </Box>
+
+      {/* Admin section */}
+      {isAdmin && (
+        <>
+          <Divider sx={{ width: '60%', my: 1 }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.75, width: '100%' }}>
+            {adminSectionItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Tooltip key={item.path} title={t(item.labelKey)} placement="right" arrow>
+                  <Box
+                    onClick={() => navigate(item.path)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      py: 0.75,
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      bgcolor: active ? 'action.selected' : 'transparent',
+                      color: active ? 'primary.main' : 'text.disabled',
+                      transition: 'background-color 0.15s, color 0.15s',
+                      '&:hover': {
+                        bgcolor: active ? 'action.selected' : 'action.hover',
+                        color: 'text.secondary',
+                      },
+                    }}
+                  >
+                    {React.cloneElement(item.icon, { sx: { fontSize: 18 } })}
+                  </Box>
+                </Tooltip>
+              );
+            })}
+          </Box>
+        </>
+      )}
+    </Box>
+  );
+
+  // ─── Mobile drawer content (full labels) ───────────────────────────────
+  const mobileDrawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar />
-      <List sx={{ flex: 1 }}>
-        {navItems.map((item) => (
+      <List sx={{ flex: 1, px: 1 }}>
+        {mainNavItems.map((item) => (
           <ListItemButton
             key={item.path}
-            selected={
-              item.path === '/'
-                ? location.pathname === '/'
-                : location.pathname.startsWith(item.path)
-            }
+            selected={isActive(item.path)}
             onClick={() => handleNavClick(item.path)}
+            sx={{
+              borderRadius: 2,
+              mb: 0.25,
+              '&.Mui-selected': {
+                bgcolor: 'action.selected',
+                '&:hover': { bgcolor: 'action.selected' },
+              },
+            }}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={t(item.labelKey)} />
+            <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>{item.icon}</ListItemIcon>
+            <ListItemText
+              primary={t(item.labelKey)}
+              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+            />
+          </ListItemButton>
+        ))}
+
+        {/* Admin section in mobile */}
+        {isAdmin && (
+          <>
+            <Divider sx={{ my: 1.5, mx: 1 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                px: 2,
+                pb: 0.5,
+                display: 'block',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'text.disabled',
+              }}
+            >
+              {t('nav.adminSection')}
+            </Typography>
+            {adminSectionItems.map((item) => (
+              <ListItemButton
+                key={item.path}
+                selected={isActive(item.path)}
+                onClick={() => handleNavClick(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  mb: 0.25,
+                  '&.Mui-selected': {
+                    bgcolor: 'action.selected',
+                    '&:hover': { bgcolor: 'action.selected' },
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={t(item.labelKey)}
+                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+                />
+              </ListItemButton>
+            ))}
+          </>
+        )}
+
+        {/* Secondary items (Help, My Activity) in mobile drawer */}
+        <Divider sx={{ my: 1.5, mx: 1 }} />
+        {secondaryNavItems.map((item) => (
+          <ListItemButton
+            key={item.path}
+            selected={isActive(item.path)}
+            onClick={() => handleNavClick(item.path)}
+            sx={{
+              borderRadius: 2,
+              mb: 0.25,
+              '&.Mui-selected': {
+                bgcolor: 'action.selected',
+                '&:hover': { bgcolor: 'action.selected' },
+              },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>{item.icon}</ListItemIcon>
+            <ListItemText
+              primary={t(item.labelKey)}
+              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500 }}
+            />
           </ListItemButton>
         ))}
       </List>
-      {/* Drawer footer: language on mobile */}
+      {/* Language toggle in mobile drawer footer */}
       {isXs && (
         <>
           <Divider />
@@ -132,7 +306,77 @@ export default function MainLayout() {
     </Box>
   );
 
-  const impersonateBannerHeight = 0;
+  // ─── Avatar dropdown menu ──────────────────────────────────────────────
+  const avatarMenu = (
+    <Menu
+      anchorEl={avatarMenuAnchor}
+      open={Boolean(avatarMenuAnchor)}
+      onClose={() => setAvatarMenuAnchor(null)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      slotProps={{
+        paper: {
+          sx: {
+            mt: 1,
+            minWidth: 180,
+            borderRadius: 2,
+            boxShadow: theme.shadows[8],
+          },
+        },
+      }}
+    >
+      {/* User info header */}
+      {user && (
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" fontWeight={700}>
+            {user.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {user.email}
+          </Typography>
+        </Box>
+      )}
+
+      {/* My Activity */}
+      <MenuItem
+        onClick={() => {
+          setAvatarMenuAnchor(null);
+          navigate('/my-activity');
+        }}
+        sx={{ gap: 1.5, py: 1 }}
+      >
+        <ActivityIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Typography variant="body2">{t('nav.myActivity')}</Typography>
+      </MenuItem>
+
+      <Divider />
+
+      {/* Impersonation or Logout */}
+      {isImpersonating ? (
+        <MenuItem
+          onClick={() => {
+            setAvatarMenuAnchor(null);
+            stopImpersonating();
+          }}
+          sx={{ gap: 1.5, py: 1, color: 'warning.main' }}
+        >
+          <ExitImpersonateIcon sx={{ fontSize: 18 }} />
+          <Typography variant="body2">{t('impersonate.stop')}</Typography>
+        </MenuItem>
+      ) : (
+        <MenuItem
+          onClick={() => {
+            setAvatarMenuAnchor(null);
+            logout();
+          }}
+          sx={{ gap: 1.5, py: 1 }}
+        >
+          <LogoutIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Typography variant="body2">{tAuth('logout')}</Typography>
+        </MenuItem>
+      )}
+    </Menu>
+  );
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -151,11 +395,22 @@ export default function MainLayout() {
             </IconButton>
           )}
 
-          <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-            {BRAND_NAME}
+          {/* Brand */}
+          <Typography
+            variant="h6"
+            noWrap
+            onClick={() => navigate('/')}
+            sx={{
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            {APP_NAME}
           </Typography>
 
-          {/* Mode switch — only for admins, hidden on very small screens */}
+          {/* Mode switch — only for admins, hidden on xs */}
           {canSwitchMode && !isXs && (
             <Tooltip title={t('mode.switchTooltip')}>
               <ToggleButtonGroup
@@ -198,68 +453,69 @@ export default function MainLayout() {
             </Tooltip>
           )}
 
-          {/* Language toggle — hidden on xs (moved to drawer) */}
+          {/* Language toggle — hidden on xs */}
           {!isXs && <Box sx={{ ml: 1 }}>{langToggle}</Box>}
 
-          {/* Avatar + action button */}
+          {/* Help icon — desktop only (mobile has it in drawer) */}
+          {!isMobile && (
+            <Tooltip title={t('nav.help')}>
+              <IconButton
+                color="inherit"
+                onClick={() => navigate('/help')}
+                size="small"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
+                <HelpIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Avatar — opens dropdown menu */}
           {user && (
             <>
               <Tooltip title={user.name}>
-                <Badge
-                  overlap="circular"
-                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                  badgeContent={
-                    isImpersonating ? (
-                      <Box
-                        sx={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          bgcolor: 'warning.main',
-                          border: '1.5px solid',
-                          borderColor: 'primary.main',
-                        }}
-                      />
-                    ) : null
-                  }
+                <IconButton
+                  onClick={(e) => setAvatarMenuAnchor(e.currentTarget)}
+                  size="small"
+                  sx={{ ml: 0.5 }}
                 >
-                  <Avatar
-                    src="/api/me/avatar"
-                    alt={user.name}
-                    sx={{ width: 32, height: 32, ml: 1, fontSize: '0.85rem' }}
+                  <Badge
+                    overlap="circular"
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    badgeContent={
+                      isImpersonating ? (
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            bgcolor: 'warning.main',
+                            border: '1.5px solid',
+                            borderColor: 'primary.main',
+                          }}
+                        />
+                      ) : null
+                    }
                   >
-                    {user.name?.charAt(0)?.toUpperCase()}
-                  </Avatar>
-                </Badge>
-              </Tooltip>
-              {!isXs && (
-                <Typography variant="body2" sx={{ ml: 0.5 }} noWrap>
-                  {user.name}
-                </Typography>
-              )}
-              {isImpersonating ? (
-                <Tooltip title={t('impersonate.stop')}>
-                  <IconButton
-                    color="inherit"
-                    onClick={stopImpersonating}
-                    size="small"
-                    sx={{ color: 'warning.light' }}
-                  >
-                    <ExitImpersonateIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <IconButton color="inherit" onClick={logout} title={tAuth('logout')} size="small">
-                  <LogoutIcon fontSize="small" />
+                    <Avatar
+                      src="/api/me/avatar"
+                      alt={user.name}
+                      sx={{ width: 32, height: 32, fontSize: '0.85rem' }}
+                    >
+                      {user.name?.charAt(0)?.toUpperCase()}
+                    </Avatar>
+                  </Badge>
                 </IconButton>
-              )}
+              </Tooltip>
+              {avatarMenu}
             </>
           )}
         </Toolbar>
       </AppBar>
 
-      {/* ─── Drawer ─── */}
+      {/* ─── Navigation ─── */}
       {isMobile ? (
+        // Mobile: temporary full-width drawer
         <Drawer
           variant="temporary"
           open={drawerOpen}
@@ -272,21 +528,25 @@ export default function MainLayout() {
             },
           }}
         >
-          {drawerContent}
+          {mobileDrawerContent}
         </Drawer>
       ) : (
+        // Desktop: icon rail
         <Drawer
           variant="permanent"
           sx={{
-            width: DRAWER_WIDTH,
+            width: RAIL_WIDTH,
             flexShrink: 0,
             '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
+              width: RAIL_WIDTH,
               boxSizing: 'border-box',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              overflow: 'hidden',
             },
           }}
         >
-          {drawerContent}
+          {railContent}
         </Drawer>
       )}
 
@@ -296,7 +556,7 @@ export default function MainLayout() {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { xs: '100%', md: `calc(100% - ${RAIL_WIDTH}px)` },
         }}
       >
         <Toolbar />

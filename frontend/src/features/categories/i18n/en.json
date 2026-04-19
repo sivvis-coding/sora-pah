@@ -1,0 +1,38 @@
+{
+  "title": "Categories",
+  "subtitle": "Manage idea categories shown to stakeholders during submission.",
+  "empty": "No categories yet. Add your first one.",
+  "col": {
+    "name": "Name",
+    "description": "Description",
+    "color": "Color",
+    "order": "Order",
+    "status": "Status"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "add": {
+    "button": "Add category",
+    "title": "Add category",
+    "fieldName": "Name",
+    "fieldDescription": "Description (optional)",
+    "fieldColor": "Color (hex, e.g. #4CAF50)",
+    "fieldOrder": "Display order",
+    "save": "Save"
+  },
+  "edit": {
+    "title": "Edit category",
+    "save": "Save changes"
+  },
+  "delete": {
+    "title": "Delete category",
+    "confirm": "Are you sure you want to delete \"{{name}}\"?",
+    "button": "Delete"
+  },
+  "toggle": {
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  }
+}

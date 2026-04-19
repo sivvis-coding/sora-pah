@@ -1,36 +1,30 @@
 {
-  "hero": {
-    "greeting": "Bienvenido, {{name}}.",
-    "subtitle": "Tu perspectiva define qué se construye a continuación. Aquí puedes revisar las prioridades de producto, opinar sobre lo que más importa y hacer que tu voz cuente.",
-    "cta": "Explorar Productos"
+  "greeting": "Hola de nuevo, {{name}}",
+  "pulse": {
+    "ideasThisWeek_zero": "Sin ideas nuevas esta semana",
+    "ideasThisWeek_one": "1 idea nueva esta semana",
+    "ideasThisWeek_other": "{{count}} ideas nuevas esta semana",
+    "totalSupporters_zero": "Sin apoyo aún",
+    "totalSupporters_one": "1 persona apoya",
+    "totalSupporters_other": "{{count}} personas apoyan en total",
+    "totalIdeas_one": "1 idea compartida",
+    "totalIdeas_other": "{{count}} ideas compartidas"
   },
-  "section": {
-    "whyHere": "Tu propósito aquí",
-    "yourRole": "Por qué tu opinión importa"
+  "trending": {
+    "title": "Tendencia esta semana",
+    "empty": "Sin ideas en tendencia esta semana",
+    "supporters_one": "1 persona apoya",
+    "supporters_other": "{{count}} personas apoyan"
   },
-  "card": {
-    "align": {
-      "title": "Alineación compartida",
-      "desc": "SORA reúne todas las voces de los stakeholders en una visión única y transparente de lo que construye la organización y por qué."
-    },
-    "vote": {
-      "title": "Influye en las prioridades",
-      "desc": "Tu opinión ponderada impacta directamente en qué productos e iniciativas avanzan — tu rol te da poder de decisión real."
-    },
-    "products": {
-      "title": "Catálogo de productos en vivo",
-      "desc": "Explora el portafolio completo de productos activos, comprende su alcance y descubre dónde tu participación es más valiosa."
-    },
-    "impact": {
-      "title": "Impacto medible",
-      "desc": "Ve cómo el aporte de los stakeholders se traduce en cambios de roadmap. Cada voto mueve la aguja en los plazos de entrega reales."
-    }
+  "recent": {
+    "title": "Actividad reciente",
+    "empty": "Nada aquí todavía. Cuando la gente empiece a compartir ideas, verás la actividad aquí.",
+    "newIdea": "compartió una idea",
+    "popularIdea": "está ganando apoyo",
+    "showMore": "Ver más"
   },
   "cta": {
-    "strip": {
-      "title": "¿Listo para opinar?",
-      "desc": "Explora el catálogo de productos y empieza a contribuir con tus prioridades.",
-      "button": "Ver Productos"
-    }
+    "shareIdea": "Compartir una idea",
+    "exploreIdeas": "Explorar ideas"
   }
 }

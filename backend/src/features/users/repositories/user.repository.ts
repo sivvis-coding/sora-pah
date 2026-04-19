@@ -71,6 +71,8 @@ export class UserRepository {
       isDeleted: false,
       deletedAt: null,
       hasSeenLanding: false,
+      department: dto.department,
+      jobTitle: dto.jobTitle,
     };
     const { resource } = await this.container.items.create<User>(user);
     return sanitize(resource!);

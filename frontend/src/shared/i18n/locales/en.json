@@ -3,13 +3,20 @@
   "nav": {
     "home": "Home",
     "products": "Products",
-    "users": "Users"
+    "ideas": "Ideas",
+    "categories": "Categories",
+    "users": "Users",
+    "decisions": "Decisions",
+    "help": "Help",
+    "myActivity": "My Activity",
+    "adminSection": "Admin"
   },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
     "errorLoadProducts": "Failed to load products",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "back": "Back"
   },
   "mode": {
     "admin": "Admin",
