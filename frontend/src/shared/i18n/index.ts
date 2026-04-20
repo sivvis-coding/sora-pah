@@ -12,6 +12,8 @@ import authEn from '../../features/auth/i18n/en.json';
 import authEs from '../../features/auth/i18n/es.json';
 import productsEn from '../../features/products/i18n/en.json';
 import productsEs from '../../features/products/i18n/es.json';
+import narrativesEn from '../../features/narratives/i18n/en.json';
+import narrativesEs from '../../features/narratives/i18n/es.json';
 import usersEn from '../../features/users/i18n/en.json';
 import usersEs from '../../features/users/i18n/es.json';
 import stakeholderHomeEn from '../../features/stakeholder-home/i18n/en.json';
@@ -35,7 +37,7 @@ i18n
   .init({
     defaultNS: 'shared',
     ns: [
-      'shared', 'auth', 'products', 'users', 'stakeholderHome', 'landing',
+      'shared', 'auth', 'products', 'narratives', 'users', 'stakeholderHome', 'landing',
       'ideas', 'categories', 'decisions', 'help', 'myActivity',
     ],
     resources: {
@@ -43,6 +45,7 @@ i18n
         shared: sharedEn,
         auth: authEn,
         products: productsEn,
+        narratives: narrativesEn,
         users: usersEn,
         stakeholderHome: stakeholderHomeEn,
         landing: landingEn,
@@ -56,6 +59,7 @@ i18n
         shared: sharedEs,
         auth: authEs,
         products: productsEs,
+        narratives: narrativesEs,
         users: usersEs,
         stakeholderHome: stakeholderHomeEs,
         landing: landingEs,

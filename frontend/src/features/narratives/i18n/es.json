@@ -1,0 +1,25 @@
+{
+  "title": "Qué se está construyendo",
+  "subtitle": "La historia de lo que construimos y por qué",
+  "empty": "Aún no hay narrativas. Cuando el trabajo comience, verás qué se está construyendo y por qué.",
+  "status": {
+    "todo": "Pendiente",
+    "inProgress": "En progreso",
+    "done": "Hecho",
+    "unknown": "Desconocido"
+  },
+  "card": {
+    "why": "Por qué",
+    "originIdea": "Idea origen",
+    "decision": "Decisión",
+    "execution": "Estado de ejecución"
+  },
+  "detail": {
+    "what": "Qué",
+    "why": "Por qué lo construimos",
+    "origin": "De dónde viene",
+    "execution": "Ejecución",
+    "noTasks": "Sin tareas vinculadas en ClickUp",
+    "back": "Volver"
+  }
+}

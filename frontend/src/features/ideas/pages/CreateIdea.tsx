@@ -24,8 +24,10 @@ import {
   BugReport as BugIcon,
   HelpOutline as HelpIcon,
   CheckCircle as CheckIcon,
+  AutoAwesome as AIIcon,
 } from '@mui/icons-material';
 import { ideasApi } from '../api/ideas.api';
+import { aiApi, type IdeaImprovement } from '../api/ai.api';
 import { categoriesApi, type Category } from '../../categories/api/categories.api';
 import { classifyIntent, type Intent } from '../utils/classify-intent';
 import { EXTERNAL_LINKS } from '../../../shared/constants';
@@ -244,6 +246,10 @@ export default function CreateIdea() {
   const [intentDismissed, setIntentDismissed] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // AI suggestion state
+  const [aiSuggestion, setAiSuggestion] = useState<IdeaImprovement | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const { data: categories = [], isLoading: catsLoading } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: categoriesApi.listActive,
@@ -303,6 +309,21 @@ export default function CreateIdea() {
   };
 
   const isSkippable = (step === 2 && !form.how) || (step === 3 && !form.categoryId);
+
+  const handleImproveWithAI = async () => {
+    setAiLoading(true);
+    try {
+      const result = await aiApi.improveIdea({
+        description: form.need,
+        problem: form.why || undefined,
+        solutionIdea: form.how || undefined,
+      });
+      setAiSuggestion(result);
+    } catch {
+      // Silently fail — AI is non-critical
+    }
+    setAiLoading(false);
+  };
 
   const selectedCategory = categories.find((c) => c.id === form.categoryId);
 
@@ -501,6 +522,68 @@ export default function CreateIdea() {
                   {tShared('common.error')}
                 </Alert>
               )}
+
+              {/* AI Improve Button */}
+              <Button
+                variant="outlined"
+                startIcon={aiLoading ? <CircularProgress size={16} /> : <AIIcon />}
+                onClick={handleImproveWithAI}
+                disabled={aiLoading || !!aiSuggestion}
+                sx={{ mt: 2, textTransform: 'none', borderRadius: 2.5 }}
+              >
+                {t('create.improveWithAI')}
+              </Button>
+
+              {/* AI Suggestion Panel */}
+              <Collapse in={!!aiSuggestion} unmountOnExit>
+                {aiSuggestion && (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      mt: 2,
+                      p: { xs: 2, md: 2.5 },
+                      borderRadius: 2.5,
+                      bgcolor: 'action.hover',
+                      borderColor: 'primary.light',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mb: 1, display: 'block', fontWeight: 600 }}
+                    >
+                      {t('create.aiSuggestion')}
+                    </Typography>
+                    <Typography variant="subtitle2" fontWeight={700}>
+                      {aiSuggestion.suggestedTitle}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, lineHeight: 1.6 }}>
+                      {aiSuggestion.suggestedSummary}
+                    </Typography>
+                    <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, need: aiSuggestion.suggestedTitle }));
+                          setAiSuggestion(null);
+                        }}
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                      >
+                        {t('create.acceptSuggestion')}
+                      </Button>
+                      <Button
+                        size="small"
+                        color="inherit"
+                        onClick={() => setAiSuggestion(null)}
+                        sx={{ textTransform: 'none', opacity: 0.7 }}
+                      >
+                        {t('create.dismissSuggestion')}
+                      </Button>
+                    </Box>
+                  </Paper>
+                )}
+              </Collapse>
             </>
           )}
 

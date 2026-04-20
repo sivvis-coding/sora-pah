@@ -1,30 +1,14 @@
 {
   "greeting": "Welcome back, {{name}}",
-  "pulse": {
-    "ideasThisWeek_zero": "No new ideas this week",
-    "ideasThisWeek_one": "1 new idea this week",
-    "ideasThisWeek_other": "{{count}} new ideas this week",
-    "totalSupporters_zero": "No supporters yet",
-    "totalSupporters_one": "1 supporter total",
-    "totalSupporters_other": "{{count}} supporters total",
-    "totalIdeas_one": "1 idea shared",
-    "totalIdeas_other": "{{count}} ideas shared"
-  },
-  "trending": {
-    "title": "Trending this week",
-    "empty": "No trending ideas this week",
-    "supporters_one": "1 supporter",
-    "supporters_other": "{{count}} supporters"
-  },
-  "recent": {
-    "title": "Recent activity",
-    "empty": "Nothing here yet. Once people start sharing ideas, you'll see the activity here.",
-    "newIdea": "shared an idea",
-    "popularIdea": "is gaining support",
-    "showMore": "Show more"
+  "subtitle": "Here's what's happening across the product",
+  "sections": {
+    "workInProgress": "Work in progress",
+    "decisions": "Recent decisions",
+    "newIdeas": "New ideas",
+    "seeAll": "See all"
   },
   "cta": {
     "shareIdea": "Share an idea",
-    "exploreIdeas": "Explore ideas"
+    "seeWhatsBeingBuilt": "What's being built"
   }
 }

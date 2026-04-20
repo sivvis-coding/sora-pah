@@ -75,7 +75,11 @@
         "primary": "Go to Help section",
         "secondary": "Continue as idea anyway"
       }
-    }
+    },
+    "improveWithAI": "Improve with AI",
+    "aiSuggestion": "AI Suggestion",
+    "acceptSuggestion": "Use this",
+    "dismissSuggestion": "Dismiss"
   },
   "detail": {
     "theNeed": "The need",
@@ -92,6 +96,19 @@
     "noConversation": "No conversation yet. Share what you think about this idea.",
     "unknownUser": "Unknown user",
     "changeStatus": "Change status",
-    "adminPanel": "Admin"
+    "adminPanel": "Admin",
+    "generateUserStory": "Generate user story",
+    "userStory": "User Story",
+    "usStatement": "User Story Statement",
+    "functionalDescription": "Functional Description",
+    "acceptanceCriteria": "Acceptance Criteria (Gherkin)",
+    "constraints": "Technical Notes / Constraints",
+    "outOfScope": "Out of Scope",
+    "requestedBy": "Requested By",
+    "sendToClickUp": "Send to ClickUp",
+    "sentToClickUp": "User story sent to ClickUp successfully",
+    "viewInClickUp": "View task",
+    "clickUpError": "Failed to send to ClickUp. Please try again.",
+    "dismiss": "Dismiss"
   }
 }

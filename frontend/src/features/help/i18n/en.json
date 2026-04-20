@@ -1,4 +1,8 @@
 {
-  "title": "Help",
-  "comingSoon": "Need guidance? We're putting together a help center with tips, FAQs, and best practices. It'll be here soon."
+  "title": "Knowledge Assistant",
+  "subtitle": "Ask anything about the product. I'll search our documentation to help you.",
+  "emptyState": "Ask me anything about the product...",
+  "inputPlaceholder": "Ask anything about the product",
+  "sources": "Sources",
+  "errorResponse": "Sorry, I couldn't process your question. Please try again."
 }

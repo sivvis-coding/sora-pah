@@ -1,0 +1,25 @@
+{
+  "title": "What's Being Built",
+  "subtitle": "The story of what we're building and why",
+  "empty": "No narratives yet. Once work begins, you'll see what's being built and why.",
+  "status": {
+    "todo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "unknown": "Unknown"
+  },
+  "card": {
+    "why": "Why",
+    "originIdea": "Origin idea",
+    "decision": "Decision",
+    "execution": "Execution status"
+  },
+  "detail": {
+    "what": "What",
+    "why": "Why we're building this",
+    "origin": "Where this came from",
+    "execution": "Execution",
+    "noTasks": "No linked ClickUp tasks",
+    "back": "Back"
+  }
+}

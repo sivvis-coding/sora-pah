@@ -6,7 +6,7 @@ import LandingPage from './features/landing/LandingPage';
 import StakeholderHome from './features/stakeholder-home/StakeholderHome';
 import { useAuth } from './features/auth/AuthContext';
 import { useMode } from './shared/ModeContext';
-import { productRoutes } from './features/products/routes';
+import { narrativeRoutes } from './features/narratives/routes';
 import { ideaRoutes } from './features/ideas/routes';
 import { categoryRoutes } from './features/categories/routes';
 import { userRoutes } from './features/users/routes';
@@ -40,7 +40,7 @@ function AppRoutes() {
         : <Navigate to="/login" replace />,
       children: [
         { index: true, element: <StakeholderHome /> },
-        ...productRoutes,
+        ...narrativeRoutes,
         ...ideaRoutes,
         ...decisionRoutes,
         ...helpRoutes,

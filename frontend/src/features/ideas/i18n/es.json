@@ -75,7 +75,11 @@
         "primary": "Ir a la sección de Ayuda",
         "secondary": "Continuar como idea de todas formas"
       }
-    }
+    },
+    "improveWithAI": "Mejorar con IA",
+    "aiSuggestion": "Sugerencia de IA",
+    "acceptSuggestion": "Usar esto",
+    "dismissSuggestion": "Descartar"
   },
   "detail": {
     "theNeed": "La necesidad",
@@ -92,6 +96,19 @@
     "noConversation": "Sin conversación aún. Comparte lo que piensas sobre esta idea.",
     "unknownUser": "Usuario desconocido",
     "changeStatus": "Cambiar estado",
-    "adminPanel": "Admin"
+    "adminPanel": "Admin",
+    "generateUserStory": "Generar historia de usuario",
+    "userStory": "Historia de Usuario",
+    "usStatement": "Enunciado de la Historia",
+    "functionalDescription": "Descripción Funcional",
+    "acceptanceCriteria": "Criterios de Aceptación (Gherkin)",
+    "constraints": "Notas Técnicas / Restricciones",
+    "outOfScope": "Fuera de Alcance",
+    "requestedBy": "Solicitado Por",
+    "sendToClickUp": "Enviar a ClickUp",
+    "sentToClickUp": "Historia de usuario enviada a ClickUp correctamente",
+    "viewInClickUp": "Ver tarea",
+    "clickUpError": "Error al enviar a ClickUp. Por favor intenta de nuevo.",
+    "dismiss": "Descartar"
   }
 }

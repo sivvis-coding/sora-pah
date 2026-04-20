@@ -5,7 +5,7 @@ import {
   Gavel as DecisionsIcon,
   HelpOutline as HelpIcon,
   History as ActivityIcon,
-  Inventory as ProductsIcon,
+  AutoStories as NarrativesIcon,
   Category as CategoryIcon,
   People as UsersIcon,
 } from '@mui/icons-material';
@@ -18,14 +18,14 @@ export interface NavItem {
 
 /** Core navigation — always visible in rail + mobile drawer */
 export const mainNavItems: NavItem[] = [
-  { labelKey: 'nav.home',      path: '/',          icon: <HomeIcon /> },
-  { labelKey: 'nav.ideas',     path: '/ideas',     icon: <IdeasIcon /> },
-  { labelKey: 'nav.decisions', path: '/decisions',  icon: <DecisionsIcon /> },
+  { labelKey: 'nav.home',       path: '/',           icon: <HomeIcon /> },
+  { labelKey: 'nav.ideas',      path: '/ideas',      icon: <IdeasIcon /> },
+  { labelKey: 'nav.decisions',  path: '/decisions',  icon: <DecisionsIcon /> },
+  { labelKey: 'nav.narratives', path: '/narratives', icon: <NarrativesIcon /> },
 ];
 
 /** Admin-only management section */
 export const adminSectionItems: NavItem[] = [
-  { labelKey: 'nav.products',   path: '/products',   icon: <ProductsIcon /> },
   { labelKey: 'nav.categories', path: '/categories', icon: <CategoryIcon /> },
   { labelKey: 'nav.users',      path: '/users',      icon: <UsersIcon /> },
 ];

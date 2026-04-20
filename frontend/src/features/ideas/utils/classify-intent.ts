@@ -70,25 +70,25 @@ function classifyWithKeywords(text: string): { intent: Intent; confidence: 'high
   return { intent: 'idea', confidence: 'low' };
 }
 
-// ─── Layer 2: AI stub ─────────────────────────────────────────────────────────
-// Replace this implementation with an actual API call when ready.
-//
-// Example future implementation:
-//
-//   async function classifyWithAI(text: string): Promise<Intent> {
-//     const res = await fetch('/api/classify-intent', {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ text }),
-//     });
-//     const { intent } = await res.json();
-//     return intent as Intent;
-//   }
-//
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function classifyWithAI(_text: string): Promise<Intent | null> {
-  // Not implemented — returns null so caller falls back to keyword layer.
-  return null;
+// ─── Layer 2: AI classification via backend ──────────────────────────────────
+
+async function classifyWithAI(text: string): Promise<Intent | null> {
+  try {
+    const token = localStorage.getItem('sora_token');
+    const res = await fetch('/api/ai/classify-intent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) return null;
+    const { intent } = await res.json();
+    return intent as Intent;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

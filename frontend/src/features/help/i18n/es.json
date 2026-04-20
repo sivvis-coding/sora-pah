@@ -1,4 +1,8 @@
 {
-  "title": "Ayuda",
-  "comingSoon": "¿Necesitas orientación? Estamos preparando un centro de ayuda con consejos, preguntas frecuentes y buenas prácticas. Estará aquí pronto."
+  "title": "Asistente de Conocimiento",
+  "subtitle": "Pregunta lo que quieras sobre el producto. Buscaré en la documentación para ayudarte.",
+  "emptyState": "Pregúntame lo que quieras sobre el producto...",
+  "inputPlaceholder": "Pregunta sobre el producto",
+  "sources": "Fuentes",
+  "errorResponse": "Lo siento, no pude procesar tu pregunta. Intenta de nuevo."
 }

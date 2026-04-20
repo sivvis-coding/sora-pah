@@ -1,4 +1,4 @@
-import { CosmosClient, Database } from '@azure/cosmos';
+import { CosmosClient, Database, VectorEmbeddingDataType, VectorEmbeddingDistanceFunction, VectorIndexType } from '@azure/cosmos';
 import { ConfigService } from '@nestjs/config';
 
 export const COSMOS_DATABASE = 'COSMOS_DATABASE';
@@ -32,7 +32,11 @@ export const cosmosDatabaseProvider = {
         partitionKey: { paths: ['/id'] },
       }),
       database.containers.createIfNotExists({
-        id: 'products',
+        id: 'narratives',
+        partitionKey: { paths: ['/id'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'decisions',
         partitionKey: { paths: ['/id'] },
       }),
       database.containers.createIfNotExists({
@@ -55,6 +59,25 @@ export const cosmosDatabaseProvider = {
         id: 'comments',
         partitionKey: { paths: ['/ideaId'] },
       }),
+      database.containers.createIfNotExists({
+        id: 'embeddings',
+        partitionKey: { paths: ['/docId'] },
+        vectorEmbeddingPolicy: {
+          vectorEmbeddings: [
+            {
+              path: '/embedding',
+              dataType: VectorEmbeddingDataType.Float32,
+              dimensions: 1536,
+              distanceFunction: VectorEmbeddingDistanceFunction.Cosine,
+            },
+          ],
+        },
+        indexingPolicy: {
+          vectorIndexes: [
+            { path: '/embedding', type: VectorIndexType.DiskANN },
+          ],
+        },
+      } as any),
     ]);
 
     return database;

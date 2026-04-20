@@ -1,4 +1,7 @@
 {
   "title": "Decisiones",
-  "comingSoon": "Aquí verás las decisiones que se toman sobre las prioridades de producto. Lo estamos construyendo ahora mismo — quédate atento."
+  "subtitle": "Decisiones clave que definen lo que construimos",
+  "empty": "Aún no hay decisiones registradas. Cuando se tomen decisiones de producto, aparecerán aquí con su justificación.",
+  "linkedIdeas_one": "1 idea vinculada",
+  "linkedIdeas_other": "{{count}} ideas vinculadas"
 }

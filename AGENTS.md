@@ -22,6 +22,7 @@ pnpm install
 pnpm run build          # nest build → dist/
 pnpm run start:dev      # nest start --watch
 pnpm run start:prod     # node dist/main.js
+pnpm run lint           # eslint (config exists)
 ```
 
 ### Frontend (`frontend/`)
@@ -32,19 +33,26 @@ pnpm run build          # tsc -b && vite build → dist/
 pnpm run dev            # vite dev server on :5173, proxies /api → localhost:3000
 ```
 
+### Type-checking (no test framework exists)
+
+```
+# Backend
+cd backend && npx tsc --noEmit
+
+# Frontend (tsconfig has noEmit:true, so just:)
+cd frontend && npx tsc -b
+```
+
 ### Docker (root)
 
 ```
-# Producción
 docker-compose up --build
-
-# Desarrollo con hot reload
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 ## Architecture: feature-first
 
-Both packages are organized feature-first. Every new domain area gets its own folder that owns all of its own code.
+Both packages are organized feature-first.
 
 ### Backend (`backend/src/`)
 
@@ -54,93 +62,87 @@ features/
   users/          # GET /api/me, GET /api/users (admin only)
   products/       # CRUD /api/products
   stakeholders/   # assign users to products with weight
+  ideas/          # ideas CRUD
+  categories/     # idea categories
+  decisions/      # decision tracking
+  narratives/     # product narratives
+  graph/          # graph relationships
   health/         # GET /api/health (no auth)
-integrations/     # AIService, ClickupService, MsGraphService stubs (not wired to any module yet)
+integrations/
+  ai.*            # AIService, AIController, AIModule — idea improvement, user story gen, knowledge Q&A
+  clickup.*       # ClickUp read + write (tasks, user story creation with custom fields)
+  msgraph.*       # MS Graph stub (not wired yet)
+  rag/            # RAG pipeline: chunker, embeddings, ClickUp docs fetcher, vector retrieval
+database/         # Cosmos DB provider (@Global DatabaseModule, exports COSMOS_DATABASE token)
 common/           # guards, decorators, filters, interfaces — shared infrastructure only
 ```
 
 - New feature = new folder under `features/` with its own module, controller, service, dto/, interfaces/
-- `common/` is for cross-cutting infrastructure only, not business logic
-- Import depth: files directly in `features/X/` use `../../common/`; files in `features/X/subdir/` use `../../../common/`
+- `common/` is for cross-cutting infrastructure only
+- `DatabaseModule` is `@Global()` — inject `COSMOS_DATABASE` anywhere without importing it
 
 ### Frontend (`frontend/src/`)
 
 ```
 features/
-  auth/           # AuthContext (mock JWT), pages/LoginPage.tsx, routes (no top-level route file — handled by router.tsx)
-  products/
-    api/          # products.api.ts — all fetch logic for this feature
-    pages/        # ProductList.tsx, ProductDetail.tsx
-    routes.tsx    # exports productRoutes: RouteObject[]
-  users/
-    pages/        # UserList.tsx
-    routes.tsx    # exports userRoutes: RouteObject[]
+  auth/             # AuthContext (mock JWT), LoginPage
+  products/         # CRUD pages + routes
+  ideas/            # idea wizard, detail, AI integration (ai.api.ts, classify-intent.ts)
+  help/             # Knowledge Assistant chat (RAG-powered)
+  users/            # admin user list
+  stakeholder-home/ # stakeholder landing
+  categories/, decisions/, narratives/, landing/, my-activity/
 shared/
-  api/            # axios client with JWT interceptor (client.ts)
-  layouts/        # MainLayout (AppBar + sidebar, renders <Outlet />)
-  i18n/           # i18n config + locales/en.json, locales/es.json
-  nav.tsx         # central nav item config — drives the sidebar
+  api/              # axios client with JWT interceptor (client.ts)
+  layouts/          # MainLayout (responsive drawer)
+  i18n/             # config + locales/en.json, locales/es.json (namespace: shared)
+  nav.tsx           # sidebar nav items
   theme.ts
-App.tsx           # mounts <Router />
-router.tsx        # composes all feature RouteObject[] under ProtectedLayout
-main.tsx          # providers: Router, QueryClient, ThemeProvider, AuthProvider
+router.tsx          # composes all feature RouteObject[] under ProtectedLayout
 ```
 
-- New feature = new folder under `features/` with `api/`, `pages/`, `routes.tsx`
-- Each feature exports a `RouteObject[]` from its `routes.tsx` and the array is spread into `router.tsx`
-- `ProtectedLayout` in `router.tsx` handles the auth gate — redirects to `/login` if unauthenticated
-- To add a sidebar entry: add a `NavItem` to `shared/nav.tsx` (icon + path + `labelKey` from `shared` namespace)
+- Each feature exports `RouteObject[]` from its `routes.tsx`, spread into `router.tsx`
+- To add a sidebar entry: add a `NavItem` to `shared/nav.tsx`
+- i18n: per-feature namespaces (`features/X/i18n/{en,es}.json`), register in `shared/i18n/index.ts`
+- All UI strings use `t()` — never hardcode. Keys are flat within namespace.
 
 ## Backend specifics
 
 - Global prefix `/api` — all routes are `/api/*`.
-- Auth: `passport-jwt` strategy. In dev (`AUTH_DEV_MODE=true`), accepts a symmetric HS256 token signed with `AUTH_DEV_SECRET`. In production, validates against Azure AD JWKS endpoint.
+- Auth: `passport-jwt`. Dev mode (`AUTH_DEV_MODE=true`) accepts HS256 token signed with `AUTH_DEV_SECRET`. Production validates Azure AD JWKS.
 - Copy `backend/.env.example` → `backend/.env` for local dev.
-- Data layer is in-memory arrays (no DB connection). Services return plain objects — ready to swap for Cosmos DB repositories.
-- Integration stubs (`src/integrations/ai.service.ts`, `clickup.service.ts`) are not wired into any module yet — they're standalone `@Injectable()` classes.
+- Data layer: Cosmos DB (via `@azure/cosmos`). The `DatabaseModule` creates containers on init.
+- AI endpoints (`/api/ai/*`): `improve-idea`, `classify-intent`, `generate-user-story`, `ask`, `send-to-clickup`, `index-docs`, `index-status`.
+- AI falls back to mock responses when `OPENAI_API_KEY` is not set.
+- RAG uses Cosmos DB vector search (DiskANN, cosine, 1536 dims) + OpenAI `text-embedding-3-small`.
+- ClickUp integration uses v3 API for Docs, v2 for tasks. Custom field IDs are hardcoded in `clickup.service.ts`.
 
 ## Frontend specifics
 
-- Vite dev server proxies `/api` to `http://localhost:3000` (see `vite.config.ts`).
-- In Docker, nginx handles the proxy (`nginx.conf` → `http://backend:3000`).
-- i18n: `react-i18next` with **per-feature namespaces**. Translation files live next to the feature they describe:
-  - `src/shared/i18n/locales/{en,es}.json` → namespace `shared` (default) — app title, nav, common errors
-  - `src/features/auth/i18n/{en,es}.json` → namespace `auth`
-  - `src/features/products/i18n/{en,es}.json` → namespace `products`
-  - New feature = new `features/X/i18n/{en,es}.json` + register the namespace in `shared/i18n/index.ts`
-- Components use `useTranslation('products')` / `useTranslation('auth')` etc. Keys are flat within the namespace (e.g. `t('title')` not `t('products.title')`). Use two `useTranslation` calls when a component needs both a feature namespace and `shared`.
-- All UI strings use `t()` — never hardcode display text.
-- Mock auth generates a fake JWT stored in `localStorage` (`sora_token`). Language preference stored as `sora_lang`.
+- Vite proxies `/api` → `http://localhost:3000` (dev). In Docker, nginx does the proxy.
+- State: `@tanstack/react-query` for server state, React context for auth.
+- UI: MUI (Material UI) components throughout.
+- Mock auth generates a fake JWT in `localStorage` (`sora_token`). Language pref: `sora_lang`.
 
 ## Gotchas
 
-- No test framework is configured yet. Don't assume `pnpm test` works.
-- No linter/prettier config exists. Don't run `pnpm lint` without checking first.
-- Backend uses `class-validator` with `whitelist: true, forbidNonWhitelisted: true` globally — unknown DTO fields are rejected.
+- **No test framework configured.** Don't assume `pnpm test` works.
+- **No prettier config.** Don't run format commands without checking.
+- Backend `class-validator` uses `whitelist: true, forbidNonWhitelisted: true` globally — unknown DTO fields are rejected.
 - Frontend `tsconfig.json` has `"noEmit": true` — TypeScript checking only, Vite handles emit.
 
 ## Responsive design rules
 
-The frontend has two audience modes with different responsive requirements:
-
 ### Stakeholder mode — MUST be 100% mobile-friendly
-All stakeholder-facing screens (StakeholderHome, ProductList in stakeholder mode, ProductDetail) MUST work flawlessly on:
-- Small phones (320px width)
-- Normal phones (375–414px)
-- Tablets (768px)
-- Laptops (1024px–1440px)
+All stakeholder-facing screens must work from 320px up.
 
 ### Admin mode — reasonable responsiveness
-Admin screens (UserList, ProductList in admin mode) should be usable down to tablet (768px) and degrade gracefully on phones. No pixel-perfect mobile needed, but nothing should overflow or be inaccessible.
+Usable down to tablet (768px), graceful degradation on phones.
 
-### Implementation patterns
-- **MainLayout**: Uses a responsive drawer — `permanent` on `>=900px`, `temporary` (hamburger menu) on `<900px`. Breakpoint: `theme.breakpoints.down('md')`.
-- **AppBar controls**: On small screens (`<600px`), non-essential controls (language toggle) collapse into the drawer.
-- **Dialogs**: Use `fullScreen` on `xs` breakpoint (`useMediaQuery(theme.breakpoints.down('sm'))`) for better mobile UX.
-- **Grid breakpoints**: Standard pattern is `xs={12} sm={6} md={4}` for card grids. For stakeholder value cards: `xs={12} sm={6} md={3}`.
-- **Typography scaling**: Hero headings use `{ xs: 'h5', md: 'h3' }` via `sx` font-size breakpoints.
-- **Spacing**: Use `sx` object breakpoint syntax — e.g. `px: { xs: 2, md: 6 }`, `py: { xs: 3, md: 7 }`.
-- **FABs**: Position `bottom: { xs: 16, md: 32 }, right: { xs: 16, md: 32 }`.
-- **Filter bars / toolbars**: `flexWrap: 'wrap'` always; on `<600px` children go full-width.
-- **Never use fixed widths** on content containers — always `maxWidth` + percentage/flex.
-- **Touch targets**: Minimum 44px height for interactive elements on mobile.
+### Key patterns
+- MainLayout: permanent drawer `>=900px`, temporary (hamburger) `<900px`
+- Dialogs: `fullScreen` on `xs` breakpoint
+- Grid: `xs={12} sm={6} md={4}` for cards
+- Never use fixed widths on content containers
+- Touch targets: minimum 44px height
+- Filter bars: `flexWrap: 'wrap'`, full-width children on `<600px`

@@ -1,4 +1,7 @@
 {
   "title": "Decisions",
-  "comingSoon": "This is where you'll see decisions made about product priorities. We're building this right now — stay tuned."
+  "subtitle": "Key decisions that shape what we build",
+  "empty": "No decisions recorded yet. When product decisions are made, they'll appear here with their rationale.",
+  "linkedIdeas_one": "1 linked idea",
+  "linkedIdeas_other": "{{count}} linked ideas"
 }
