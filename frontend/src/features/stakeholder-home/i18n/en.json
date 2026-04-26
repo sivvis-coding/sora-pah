@@ -1,6 +1,11 @@
 {
   "greeting": "Welcome back, {{name}}",
   "subtitle": "Here's what's happening across the product",
+  "emptyState": {
+    "headline": "Nothing here yet — start the conversation.",
+    "subheadline": "Share an idea, vote on others, and help shape the product roadmap. Your voice matters.",
+    "cta": "Share your first idea"
+  },
   "sections": {
     "workInProgress": "Work in progress",
     "decisions": "Recent decisions",
@@ -9,6 +14,12 @@
   },
   "cta": {
     "shareIdea": "Share an idea",
-    "seeWhatsBeingBuilt": "What's being built"
+    "seeWhatsBeingBuilt": "See progress board"
+  },
+  "aboutBanner": {
+    "headline": "New to SORA?",
+    "body": "SORA is your team's space to share ideas, track decisions, and see what's being built — all in one place.",
+    "cta": "Learn more",
+    "dismiss": "Got it"
   }
 }

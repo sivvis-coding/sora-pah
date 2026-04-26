@@ -1,7 +1,8 @@
 export const IdeaStatus = {
   OPEN: 'open',
-  IN_REVIEW: 'in_review',
-  CONVERTED: 'converted',
+  BACKLOG: 'backlog',
+  IMPLEMENTED: 'implemented',
+  DISCARDED: 'discarded',
 } as const;
 
 export type IdeaStatus = (typeof IdeaStatus)[keyof typeof IdeaStatus];

@@ -134,4 +134,40 @@ export class MsGraphService {
       return null;
     }
   }
+
+  /**
+   * Send a direct Teams message to a user by their OID.
+   * Requires Chat.Create + ChatMessage.Send application permissions.
+   * Returns true if sent, false if permissions are missing or user not found.
+   */
+  async sendTeamsDirectMessage(recipientOid: string, message: string): Promise<boolean> {
+    try {
+      // Step 1 — create or get existing 1:1 chat
+      const chat = await this.client
+        .api('/chats')
+        .post({
+          chatType: 'oneOnOne',
+          members: [
+            {
+              '@odata.type': '#microsoft.graph.aadUserConversationMember',
+              roles: ['owner'],
+              'user@odata.bind': `https://graph.microsoft.com/v1.0/users/${recipientOid}`,
+            },
+          ],
+        });
+
+      // Step 2 — send message
+      await this.client
+        .api(`/chats/${chat.id}/messages`)
+        .post({
+          body: { content: message, contentType: 'html' },
+        });
+
+      this.logger.log(`Teams DM sent to OID ${recipientOid}`);
+      return true;
+    } catch (err: any) {
+      this.logger.error(`sendTeamsDirectMessage failed for OID ${recipientOid}: ${err.message}`);
+      return false;
+    }
+  }
 }

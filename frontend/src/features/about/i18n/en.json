@@ -1,0 +1,73 @@
+{
+  "title": "What is SORA?",
+  "subtitle": "Turn scattered opinions into clear product decisions.",
+  "hero": {
+    "tag": "Product alignment, simplified",
+    "headline": "What is SORA?",
+    "body": "SORA gives every voice a place — structured, weighted, and connected to real execution."
+  },
+  "flow": {
+    "label": "How it works",
+    "headline": "From idea to execution, step by step.",
+    "steps": [
+      {
+        "title": "Share ideas",
+        "body": "Anyone on the team submits ideas through a simple, guided form."
+      },
+      {
+        "title": "Gather input",
+        "body": "Stakeholders vote and comment. Every opinion is captured — nothing gets lost."
+      },
+      {
+        "title": "Make decisions",
+        "body": "Product leaders decide with full context: weighted votes, trends, and impact scores."
+      },
+      {
+        "title": "Build it",
+        "body": "Approved ideas flow directly into ClickUp as structured tasks, ready for execution."
+      },
+      {
+        "title": "Stay informed",
+        "body": "Everyone sees what was decided and why. No more wondering what happened to your idea."
+      }
+    ]
+  },
+  "notA": {
+    "label": "Clarity",
+    "headline": "What SORA is NOT.",
+    "items": [
+      { "label": "Not a ticketing tool", "body": "Use Freshservice for bugs and support requests." },
+      { "label": "Not a backlog manager", "body": "Backlogs live in ClickUp. SORA feeds them." },
+      { "label": "Not a support system", "body": "SORA is about product direction, not issue resolution." }
+    ]
+  },
+  "whoFor": {
+    "label": "Roles",
+    "headline": "Built for both sides of the table.",
+    "stakeholders": {
+      "role": "Stakeholders",
+      "items": [
+        "Share what you need",
+        "Support others' ideas",
+        "See what gets built and why"
+      ]
+    },
+    "product": {
+      "role": "Product teams",
+      "items": [
+        "Structure and evaluate ideas",
+        "Make data-backed decisions",
+        "Connect decisions to execution"
+      ]
+    }
+  },
+  "trust": {
+    "label": "The promise",
+    "headline": "Your ideas don't disappear.",
+    "body": "In SORA, every idea is tracked, evaluated, and resolved — with a clear explanation. No black holes."
+  },
+  "cta": {
+    "primary": "Share an idea",
+    "secondary": "Go to home"
+  }
+}

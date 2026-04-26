@@ -1,7 +1,8 @@
-import { Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/constants/user-role';
 import { RagService } from './rag.service';
+import { IndexDocsDto } from '../ai.dto';
 
 @Controller('ai')
 export class RagController {
@@ -10,26 +11,25 @@ export class RagController {
   /**
    * POST /api/ai/index-docs
    *
-   * Admin-only endpoint to trigger re-indexing of ClickUp documentation.
-   * Fetches all docs from the configured folder, chunks, embeds, and stores in Cosmos.
+   * Admin-only. Indexes specific ClickUp docs by ID (and all their subpages).
+   * Body: { docIds: string[] }
    */
   @Post('index-docs')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  indexDocs() {
-    return this.ragService.indexDocs();
+  indexDocs(@Body() dto: IndexDocsDto) {
+    return this.ragService.indexDocs(dto.docIds);
   }
 
   /**
    * POST /api/ai/index-status
    *
-   * Check if any documents have been indexed.
+   * Returns whether the index has any data and the total chunk count.
    */
   @Post('index-status')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  async indexStatus() {
-    const hasIndex = await this.ragService.hasIndex();
-    return { indexed: hasIndex };
+  indexStatus() {
+    return this.ragService.hasIndex();
   }
 }

@@ -1,0 +1,73 @@
+{
+  "title": "¿Qué es SORA?",
+  "subtitle": "Convierte opiniones dispersas en decisiones claras de producto.",
+  "hero": {
+    "tag": "Alineación de producto, simplificada",
+    "headline": "¿Qué es SORA?",
+    "body": "SORA le da un lugar a cada voz — estructurada, ponderada y conectada a la ejecución real."
+  },
+  "flow": {
+    "label": "Cómo funciona",
+    "headline": "De idea a ejecución, paso a paso.",
+    "steps": [
+      {
+        "title": "Comparte ideas",
+        "body": "Cualquier persona del equipo envía ideas a través de un formulario simple y guiado."
+      },
+      {
+        "title": "Recopila opiniones",
+        "body": "Los stakeholders votan y comentan. Cada opinión queda registrada — nada se pierde."
+      },
+      {
+        "title": "Toma decisiones",
+        "body": "Los líderes de producto deciden con contexto completo: votos ponderados, tendencias y scores de impacto."
+      },
+      {
+        "title": "Constrúyelo",
+        "body": "Las ideas aprobadas fluyen directamente a ClickUp como tareas estructuradas, listas para ejecución."
+      },
+      {
+        "title": "Mantente informado",
+        "body": "Todos ven qué se decidió y por qué. Se acabó preguntarse qué pasó con tu idea."
+      }
+    ]
+  },
+  "notA": {
+    "label": "Claridad",
+    "headline": "Lo que SORA NO es.",
+    "items": [
+      { "label": "No es una herramienta de tickets", "body": "Usa Freshservice para bugs y solicitudes de soporte." },
+      { "label": "No es un gestor de backlog", "body": "Los backlogs viven en ClickUp. SORA los alimenta." },
+      { "label": "No es un sistema de soporte", "body": "SORA es sobre dirección de producto, no resolución de incidencias." }
+    ]
+  },
+  "whoFor": {
+    "label": "Roles",
+    "headline": "Diseñado para ambos lados de la mesa.",
+    "stakeholders": {
+      "role": "Stakeholders",
+      "items": [
+        "Comparte lo que necesitas",
+        "Apoya las ideas de otros",
+        "Ve qué se construye y por qué"
+      ]
+    },
+    "product": {
+      "role": "Equipos de producto",
+      "items": [
+        "Estructura y evalúa ideas",
+        "Toma decisiones basadas en datos",
+        "Conecta decisiones a la ejecución"
+      ]
+    }
+  },
+  "trust": {
+    "label": "La promesa",
+    "headline": "Tus ideas no desaparecen.",
+    "body": "En SORA, cada idea es rastreada, evaluada y resuelta — con una explicación clara. Sin agujeros negros."
+  },
+  "cta": {
+    "primary": "Compartir una idea",
+    "secondary": "Ir al inicio"
+  }
+}

@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Database } from '@azure/cosmos';
 import { v4 as uuid } from 'uuid';
 import { COSMOS_DATABASE } from '../../../database/cosmos.provider';
-import { Idea } from '../interfaces/idea.interface';
+import { Idea, IdeaUserStory } from '../interfaces/idea.interface';
 import { IdeaStatus } from '../constants/idea-status';
 import { CreateIdeaDto } from '../dto/create-idea.dto';
 
@@ -10,8 +10,8 @@ const CONTAINER = 'ideas';
 
 const IDEA_FIELDS: (keyof Idea)[] = [
   'id', 'title', 'description', 'problem', 'value', 'solutionIdea',
-  'productId', 'categoryId', 'createdBy', 'status', 'voteCount', 'createdAt',
-  'isDeleted', 'deletedAt',
+  'productId', 'categoryId', 'createdBy', 'status', 'discardReason',
+  'decisionId', 'userStory', 'voteCount', 'createdAt', 'isDeleted', 'deletedAt',
 ];
 
 function sanitize(raw: Idea): Idea {
@@ -32,7 +32,14 @@ export class IdeaRepository {
 
   async findAll(): Promise<Idea[]> {
     const { resources } = await this.container.items
-      .query<Idea>('SELECT * FROM c WHERE c.isDeleted = false ORDER BY c.voteCount DESC')
+      .query<Idea>("SELECT * FROM c WHERE c.isDeleted = false AND c.status = 'open' ORDER BY c.voteCount DESC")
+      .fetchAll();
+    return resources.map(sanitize);
+  }
+
+  async findClosed(): Promise<Idea[]> {
+    const { resources } = await this.container.items
+      .query<Idea>("SELECT * FROM c WHERE c.isDeleted = false AND c.status != 'open' ORDER BY c.createdAt DESC")
       .fetchAll();
     return resources.map(sanitize);
   }
@@ -59,6 +66,9 @@ export class IdeaRepository {
       categoryId: dto.categoryId ?? null,
       createdBy,
       status: IdeaStatus.OPEN,
+      discardReason: null,
+      decisionId: null,
+      userStory: null,
       voteCount: 0,
       createdAt: new Date().toISOString(),
       isDeleted: false,
@@ -68,10 +78,14 @@ export class IdeaRepository {
     return sanitize(resource!);
   }
 
-  async updateStatus(id: string, status: IdeaStatus): Promise<Idea> {
+  async updateStatus(id: string, status: IdeaStatus, discardReason?: string): Promise<Idea> {
     const existing = await this.findById(id);
     if (!existing) throw new NotFoundException(`Idea ${id} not found`);
-    const updated: Idea = { ...existing, status };
+    const updated: Idea = {
+      ...existing,
+      status,
+      discardReason: status === IdeaStatus.DISCARDED ? (discardReason ?? null) : null,
+    };
     const { resource } = await this.container.item(id, id).replace<Idea>(updated);
     return sanitize(resource!);
   }
@@ -81,6 +95,14 @@ export class IdeaRepository {
     if (!existing) throw new NotFoundException(`Idea ${id} not found`);
     const updated: Idea = { ...existing, voteCount: existing.voteCount + delta };
     await this.container.item(id, id).replace<Idea>(updated);
+  }
+
+  async updateUserStory(id: string, userStory: IdeaUserStory): Promise<Idea> {
+    const existing = await this.findById(id);
+    if (!existing) throw new NotFoundException(`Idea ${id} not found`);
+    const updated: Idea = { ...existing, userStory };
+    const { resource } = await this.container.item(id, id).replace<Idea>(updated);
+    return sanitize(resource!);
   }
 
   async softDelete(id: string): Promise<void> {

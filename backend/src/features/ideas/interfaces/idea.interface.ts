@@ -1,5 +1,16 @@
 import { IdeaStatus } from '../constants/idea-status';
 
+export interface IdeaUserStory {
+  title: string;
+  description: string;
+  userStoryStatement: string;
+  functionalDescription: string;
+  acceptanceCriteriaInGherkin: string;
+  constraints: string;
+  outOfScope: string;
+  requestedBy: string;
+}
+
 /**
  * Idea entity.
  *
@@ -18,6 +29,9 @@ export interface Idea {
   categoryId: string | null;
   createdBy: string;
   status: IdeaStatus;
+  discardReason: string | null;
+  decisionId: string | null;
+  userStory: IdeaUserStory | null;
   voteCount: number;
   createdAt: string;
   isDeleted: boolean;

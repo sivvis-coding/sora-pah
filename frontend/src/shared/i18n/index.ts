@@ -30,6 +30,12 @@ import helpEn from '../../features/help/i18n/en.json';
 import helpEs from '../../features/help/i18n/es.json';
 import myActivityEn from '../../features/my-activity/i18n/en.json';
 import myActivityEs from '../../features/my-activity/i18n/es.json';
+import adminEn from '../../features/admin/i18n/en.json';
+import adminEs from '../../features/admin/i18n/es.json';
+import aboutEn from '../../features/about/i18n/en.json';
+import aboutEs from '../../features/about/i18n/es.json';
+import progressBoardEn from '../../features/progress-board/i18n/en.json';
+import progressBoardEs from '../../features/progress-board/i18n/es.json';
 
 i18n
   .use(LanguageDetector)
@@ -38,7 +44,7 @@ i18n
     defaultNS: 'shared',
     ns: [
       'shared', 'auth', 'products', 'narratives', 'users', 'stakeholderHome', 'landing',
-      'ideas', 'categories', 'decisions', 'help', 'myActivity',
+      'ideas', 'categories', 'decisions', 'help', 'myActivity', 'admin', 'about', 'progressBoard',
     ],
     resources: {
       en: {
@@ -54,6 +60,9 @@ i18n
         decisions: decisionsEn,
         help: helpEn,
         myActivity: myActivityEn,
+        admin: adminEn,
+        about: aboutEn,
+        progressBoard: progressBoardEn,
       },
       es: {
         shared: sharedEs,
@@ -68,6 +77,9 @@ i18n
         decisions: decisionsEs,
         help: helpEs,
         myActivity: myActivityEs,
+        admin: adminEs,
+        about: aboutEs,
+        progressBoard: progressBoardEs,
       },
     },
     fallbackLng: 'en',

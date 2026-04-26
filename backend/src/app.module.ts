@@ -12,6 +12,7 @@ import { HealthModule } from './features/health/health.module';
 import { IdeasModule } from './features/ideas/ideas.module';
 import { CategoriesModule } from './features/categories/categories.module';
 import { AIModule } from './integrations/ai.module';
+import { ProgressBoardModule } from './features/progress-board/progress-board.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -29,6 +30,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     CategoriesModule,
     AIModule,
     HealthModule,
+    ProgressBoardModule,
   ],
   providers: [
     // Order matters: JwtAuthGuard runs first (populates request.user),

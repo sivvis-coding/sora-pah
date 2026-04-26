@@ -17,6 +17,7 @@ import {
   useTheme,
   Fade,
   LinearProgress,
+  Divider,
 } from '@mui/material';
 import {
   ArrowForward as NextIcon,
@@ -31,6 +32,7 @@ import { aiApi, type IdeaImprovement } from '../api/ai.api';
 import { categoriesApi, type Category } from '../../categories/api/categories.api';
 import { classifyIntent, type Intent } from '../utils/classify-intent';
 import { EXTERNAL_LINKS } from '../../../shared/constants';
+import IdeaCreated from './IdeaCreated';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -241,6 +243,7 @@ export default function CreateIdea() {
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(true);
   const [form, setForm] = useState<ConversationForm>(EMPTY);
+  const [createdIdea, setCreatedIdea] = useState<{ id: string; title: string } | null>(null);
 
   const [detectedIntent, setDetectedIntent] = useState<'bug' | 'help' | null>(null);
   const [intentDismissed, setIntentDismissed] = useState(false);
@@ -287,9 +290,12 @@ export default function CreateIdea() {
         categoryId: form.categoryId || undefined,
       });
     },
-    onSuccess: () => {
+    onSuccess: (idea) => {
       queryClient.invalidateQueries({ queryKey: ['ideas'] });
-      navigate('/ideas');
+      const title = form.need.length > 80
+        ? form.need.slice(0, 80).trimEnd() + '…'
+        : form.need;
+      setCreatedIdea({ id: idea.id, title });
     },
   });
 
@@ -326,6 +332,12 @@ export default function CreateIdea() {
   };
 
   const selectedCategory = categories.find((c) => c.id === form.categoryId);
+
+  // ─── Success screen ───────────────────────────────────────────────────────
+
+  if (createdIdea) {
+    return <IdeaCreated ideaId={createdIdea.id} ideaTitle={createdIdea.title} />;
+  }
 
   // ─── Render ───────────────────────────────────────────────────────────────
 

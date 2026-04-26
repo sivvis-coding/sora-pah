@@ -1,7 +1,15 @@
 {
   "title": "Decisions",
-  "subtitle": "Key decisions that shape what we build",
-  "empty": "No decisions recorded yet. When product decisions are made, they'll appear here with their rationale.",
-  "linkedIdeas_one": "1 linked idea",
-  "linkedIdeas_other": "{{count}} linked ideas"
+  "subtitle": "Ideas with a final decision — in backlog, implemented, or discarded",
+  "empty": "No decisions yet. When an idea moves to backlog or gets discarded, it will appear here.",
+  "ungrouped": "Ungrouped",
+  "statusLabel": {
+    "backlog": "In backlog",
+    "implemented": "Implemented",
+    "discarded": "Discarded"
+  },
+  "discardReason": "Reason: {{reason}}",
+  "votes_one": "{{count}} support",
+  "votes_other": "{{count}} supports",
+  "by": "by {{name}}"
 }

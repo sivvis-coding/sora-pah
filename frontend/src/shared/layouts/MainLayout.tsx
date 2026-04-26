@@ -32,6 +32,7 @@ import {
   VisibilityOff as ExitImpersonateIcon,
   HelpOutline as HelpIcon,
   History as ActivityIcon,
+  InfoOutlined as AboutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useMode } from '../ModeContext';
@@ -347,6 +348,18 @@ export default function MainLayout() {
       >
         <ActivityIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
         <Typography variant="body2">{t('nav.myActivity')}</Typography>
+      </MenuItem>
+
+      {/* About */}
+      <MenuItem
+        onClick={() => {
+          setAvatarMenuAnchor(null);
+          navigate('/about');
+        }}
+        sx={{ gap: 1.5, py: 1 }}
+      >
+        <AboutIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Typography variant="body2">{t('nav.about')}</Typography>
       </MenuItem>
 
       <Divider />

@@ -1,5 +1,11 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Database, Container } from '@azure/cosmos';
+import {
+  Database,
+  Container,
+  VectorEmbeddingDataType,
+  VectorEmbeddingDistanceFunction,
+  VectorIndexType,
+} from '@azure/cosmos';
 import { v4 as uuid } from 'uuid';
 import { COSMOS_DATABASE } from '../../database/cosmos.provider';
 import { ClickUpDocsService } from './clickup-docs.service';
@@ -17,18 +23,43 @@ import {
  *
  * Indexing: ClickUp docs → chunk → embed → store in Cosmos "embeddings"
  * Retrieval: embed query → Cosmos vector search → return top-K chunks
+ *
+ * The "embeddings" container is created lazily on the first indexing run
+ * so the app starts normally even when Cosmos Vector Search is not enabled.
  */
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
-  private readonly container: Container;
 
   constructor(
     @Inject(COSMOS_DATABASE) private readonly db: Database,
     private readonly clickupDocs: ClickUpDocsService,
     private readonly embeddings: EmbeddingsService,
-  ) {
-    this.container = this.db.container('embeddings');
+  ) {}
+
+  /**
+   * Ensures the "embeddings" container exists with the correct vector policy.
+   * Called at the start of indexing — never at module init.
+   */
+  private async ensureContainer(): Promise<Container> {
+    const { container } = await this.db.containers.createIfNotExists({
+      id: 'embeddings',
+      partitionKey: { paths: ['/docId'] },
+      vectorEmbeddingPolicy: {
+        vectorEmbeddings: [
+          {
+            path: '/embedding',
+            dataType: VectorEmbeddingDataType.Float32,
+            dimensions: 1536,
+            distanceFunction: VectorEmbeddingDistanceFunction.Cosine,
+          },
+        ],
+      },
+      indexingPolicy: {
+        vectorIndexes: [{ path: '/embedding', type: VectorIndexType.DiskANN }],
+      },
+    } as any);
+    return container;
   }
 
   // ─── Indexing ───────────────────────────────────────────────────────────────
@@ -37,24 +68,23 @@ export class RagService {
    * Full re-index: fetch all docs from ClickUp, chunk, embed, upsert to Cosmos.
    * Deletes stale records for docs/pages that no longer exist.
    */
-  async indexDocs(): Promise<IndexingResult> {
+  async indexDocs(docIds: string[]): Promise<IndexingResult> {
     const startTime = Date.now();
-    this.logger.log('Starting document indexing...');
+    this.logger.log(`Starting document indexing for ${docIds.length} doc(s): ${docIds.join(', ')}`);
 
-    // 1. Fetch all docs from ClickUp
-    const docs = await this.clickupDocs.listDocs();
-    this.logger.log(`Found ${docs.length} docs to index`);
+    // Ensure the vector container exists before writing
+    const container = await this.ensureContainer();
 
     let pagesProcessed = 0;
     const allChunks: DocChunk[] = [];
-    const activeDocIds = new Set<string>();
+    const activeDocIds = new Set<string>(docIds);
 
-    // 2. For each doc, fetch pages and chunk
-    for (const doc of docs) {
-      activeDocIds.add(doc.id);
+    // Fetch each doc by ID and chunk its pages
+    for (const docId of docIds) {
       try {
-        const pages = await this.clickupDocs.getDocPages(doc.id);
-        this.logger.log(`  Doc "${doc.name}": ${pages.length} pages`);
+        const doc = await this.clickupDocs.getDocInfo(docId);
+        const pages = await this.clickupDocs.getDocPages(docId);
+        this.logger.log(`  Doc "${doc.name}" (${docId}): ${pages.length} pages`);
 
         for (const page of pages) {
           pagesProcessed++;
@@ -69,7 +99,7 @@ export class RagService {
           allChunks.push(...chunks);
         }
       } catch (err) {
-        this.logger.error(`Failed to process doc "${doc.name}": ${err}`);
+        this.logger.error(`Failed to process doc "${docId}": ${err}`);
       }
     }
 
@@ -100,7 +130,7 @@ export class RagService {
       };
 
       try {
-        await this.container.items.upsert(record);
+        await container.items.upsert(record);
         stored++;
       } catch (err) {
         this.logger.error(`Failed to upsert chunk ${i}: ${err}`);
@@ -110,7 +140,7 @@ export class RagService {
     // 5. Delete stale records (docs that no longer exist)
     let deleted = 0;
     try {
-      const { resources: existing } = await this.container.items
+      const { resources: existing } = await container.items
         .query<{ id: string; docId: string }>({
           query: 'SELECT c.id, c.docId FROM c',
         })
@@ -118,7 +148,7 @@ export class RagService {
 
       for (const item of existing) {
         if (!activeDocIds.has(item.docId)) {
-          await this.container.item(item.id, item.docId).delete();
+          await container.item(item.id, item.docId).delete();
           deleted++;
         }
       }
@@ -127,7 +157,7 @@ export class RagService {
     }
 
     const result: IndexingResult = {
-      docsProcessed: docs.length,
+      docsProcessed: docIds.length,
       pagesProcessed,
       chunksStored: stored,
       chunksDeleted: deleted,
@@ -152,7 +182,8 @@ export class RagService {
     const queryEmbedding = await this.embeddings.embedSingle(query);
 
     // Vector search query using Cosmos DB VectorDistance function
-    const { resources } = await this.container.items
+    const container = this.db.container('embeddings');
+    const { resources } = await container.items
       .query<{
         content: string;
         docTitle: string;
@@ -188,16 +219,17 @@ export class RagService {
   /**
    * Check if the embeddings container has any data indexed.
    */
-  async hasIndex(): Promise<boolean> {
+  async hasIndex(): Promise<{ indexed: boolean; chunkCount: number }> {
     try {
-      const { resources } = await this.container.items
+      const { resources } = await this.db.container('embeddings').items
         .query<number>({
           query: 'SELECT VALUE COUNT(1) FROM c',
         })
         .fetchAll();
-      return (resources[0] ?? 0) > 0;
+      const count = resources[0] ?? 0;
+      return { indexed: count > 0, chunkCount: count };
     } catch {
-      return false;
+      return { indexed: false, chunkCount: 0 };
     }
   }
 }

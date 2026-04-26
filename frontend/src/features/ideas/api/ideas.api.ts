@@ -13,6 +13,17 @@ export interface IdeaCategory {
   color: string | null;
 }
 
+export interface IdeaUserStory {
+  title: string;
+  description: string;
+  userStoryStatement: string;
+  functionalDescription: string;
+  acceptanceCriteriaInGherkin: string;
+  constraints: string;
+  outOfScope: string;
+  requestedBy: string;
+}
+
 export interface Idea {
   id: string;
   title: string;
@@ -23,7 +34,10 @@ export interface Idea {
   productId: string | null;
   categoryId: string | null;
   createdBy: string;
-  status: 'open' | 'in_review' | 'converted';
+  status: 'open' | 'backlog' | 'implemented' | 'discarded';
+  discardReason: string | null;
+  decisionId: string | null;
+  userStory: IdeaUserStory | null;
   voteCount: number;
   commentCount: number;
   createdAt: string;
@@ -62,6 +76,9 @@ export const ideasApi = {
   list: (): Promise<IdeasListResponse> =>
     apiClient.get('/ideas').then((r) => r.data),
 
+  listClosed: (): Promise<Idea[]> =>
+    apiClient.get('/ideas/closed').then((r) => r.data),
+
   get: (id: string): Promise<IdeaDetail> =>
     apiClient.get(`/ideas/${id}`).then((r) => r.data),
 
@@ -76,8 +93,11 @@ export const ideasApi = {
   }): Promise<Idea> =>
     apiClient.post('/ideas', data).then((r) => r.data),
 
-  updateStatus: (id: string, status: Idea['status']): Promise<Idea> =>
-    apiClient.patch(`/ideas/${id}/status`, { status }).then((r) => r.data),
+  updateStatus: (id: string, status: Idea['status'], discardReason?: string): Promise<Idea> =>
+    apiClient.patch(`/ideas/${id}/status`, { status, discardReason }).then((r) => r.data),
+
+  updateUserStory: (id: string, userStory: IdeaUserStory): Promise<Idea> =>
+    apiClient.patch(`/ideas/${id}/user-story`, userStory).then((r) => r.data),
 
   vote: (id: string, comment?: string): Promise<Vote> =>
     apiClient.post(`/ideas/${id}/vote`, { comment }).then((r) => r.data),
@@ -97,4 +117,8 @@ export const ideasApi = {
 
   deleteComment: (ideaId: string, commentId: string): Promise<void> =>
     apiClient.delete(`/ideas/${ideaId}/comments/${commentId}`).then((r) => r.data),
+
+  // Share
+  share: (ideaId: string, recipientEmails: string[], message?: string): Promise<{ shared: boolean; recipientCount: number }> =>
+    apiClient.post(`/ideas/${ideaId}/share`, { recipientEmails, message }).then((r) => r.data),
 };

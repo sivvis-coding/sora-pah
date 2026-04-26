@@ -1,10 +1,16 @@
 {
   "title": "Ideas",
   "empty": "Aún no hay ideas. ¡Sé el primero en compartir una!",
+  "emptyState": {
+    "headline": "Aún no hay ideas — sé el primero.",
+    "subheadline": "Comparte qué necesitas, qué te frustra, o qué te gustaría mejorar. Solo toma 2 minutos.",
+    "cta": "Compartir la primera idea"
+  },
   "status": {
     "open": "Abierta",
-    "in_review": "En revisión",
-    "converted": "Convertida"
+    "backlog": "En backlog",
+    "implemented": "Implementada",
+    "discarded": "Descartada"
   },
   "list": {
     "search": "Buscar ideas...",
@@ -79,7 +85,78 @@
     "improveWithAI": "Mejorar con IA",
     "aiSuggestion": "Sugerencia de IA",
     "acceptSuggestion": "Usar esto",
-    "dismissSuggestion": "Descartar"
+    "dismissSuggestion": "Descartar",
+    "success": {
+      "headline": "¡Tu idea está activa! 🎉",
+      "subheadline": "Ya es visible para tu equipo. Cuanto más apoyo reciba, más alto sube.",
+      "nextStepsLabel": "Qué pasa ahora",
+      "step1Title": "El equipo puede apoyarla",
+      "step1Desc": "Otros verán tu idea y podrán votar para subirla en la lista.",
+      "step2Title": "Invita a tu equipo",
+      "step2Desc": "Más voces significan una señal más fuerte. Comparte SORA con tus colegas.",
+      "viewIdea": "Ver mi idea",
+      "browseIdeas": "Ver todas las ideas"
+    }
+  },
+  "convo": {
+    "pageTitle": "Compartir una idea",
+    "pageSubtitle": "Piensa en voz alta — te ayudamos a darle forma.",
+    "inputPlaceholder": "¿Qué necesitas o qué te está molestando?",
+    "inputHint": "Empieza a escribir — no hay respuesta incorrecta",
+    "sendButton": "Enviar",
+    "continueButton": "Continuar",
+    "submitButton": "Compartir idea",
+    "editingLabel": "Editando",
+    "previewTitle": "Tu idea",
+    "previewEmpty": "Tu idea tomará forma aquí mientras escribes.",
+    "previewField": {
+      "need": "La necesidad",
+      "why": "Por qué importa",
+      "how": "Posible enfoque",
+      "module": "Módulo / Pantalla",
+      "category": "Área"
+    },
+    "aiThinking": "Pensando...",
+    "aiImprove": "Pulir con IA",
+    "aiImproving": "Puliendo...",
+    "aiImproved": "La IA pulió tu idea",
+    "aiImprovedAccept": "Usar esto",
+    "aiImprovedDismiss": "Mantener original",
+    "categoryLabel": "Elige un área (opcional)",
+    "categorySkip": "No estoy seguro/a",
+    "similar": {
+      "title": "Idea similar encontrada",
+      "subtitle": "Puede que ya esté en SORA. Revisa antes de enviar.",
+      "viewIdea": "Verla",
+      "supportIdea": "Apoyarla",
+      "continueAnyway": "Enviar la mía de todas formas",
+      "similarity": "{{percent}}% similar"
+    },
+    "intent": {
+      "bug": {
+        "message": "Esto parece un bug.",
+        "subtext": "Si algo está roto, Freshservice puede ayudarte más rápido.",
+        "primary": "Reportar en Freshservice",
+        "secondary": "Continuar como idea"
+      },
+      "help": {
+        "message": "Parece que necesitas ayuda.",
+        "subtext": "La sección de Ayuda podría tener ya la respuesta.",
+        "primary": "Ir a Ayuda",
+        "secondary": "Continuar como idea"
+      }
+    },
+    "prompts": {
+      "q1": "¿Qué necesitas o qué te está frustrando?",
+      "q2": "¿Por qué importa esto? ¿Qué problema resuelve?",
+      "q3": "¿Tienes alguna idea de cómo podría funcionar? (opcional)"
+    },
+    "followUp": {
+      "askWhy": "Bien — ¿por qué es importante para ti?",
+      "askHow": "Entendido. ¿Tienes alguna idea de cómo podría funcionar? Sin presión si no.",
+      "ready": "Es suficiente para continuar. Revisa tu idea abajo y envíala cuando estés listo/a.",
+      "error": "Tuve un problema al procesar eso. ¿Puedes intentarlo de nuevo?"
+    }
   },
   "detail": {
     "theNeed": "La necesidad",
@@ -109,6 +186,12 @@
     "sentToClickUp": "Historia de usuario enviada a ClickUp correctamente",
     "viewInClickUp": "Ver tarea",
     "clickUpError": "Error al enviar a ClickUp. Por favor intenta de nuevo.",
-    "dismiss": "Descartar"
+    "dismiss": "Descartar",
+    "deleteIdea": "Eliminar idea",
+    "deleteConfirm": "¿Estás seguro? Esta acción no se puede deshacer.",
+    "deleteConfirmYes": "Sí, eliminar"
+  },
+  "share": {
+    "message": "💡 Alguien propuso \"{{title}}\" en SORA — ¿tú qué opinas? Apóyala si te parece útil 👇"
   }
 }

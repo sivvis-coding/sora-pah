@@ -9,7 +9,11 @@
     "decisions": "Decisiones",
     "help": "Ayuda",
     "myActivity": "Mi actividad",
-    "adminSection": "Admin"
+    "adminSection": "Admin",
+    "workspace": "US Workspace",
+    "admin": "Sistema",
+    "about": "¿Qué es SORA?",
+    "progress": "Tablero de Progreso"
   },
   "common": {
     "loading": "Cargando...",
@@ -17,6 +21,25 @@
     "errorLoadProducts": "Error al cargar los productos",
     "cancel": "Cancelar",
     "back": "Volver"
+  },
+  "share": {
+    "tooltip": "Compartir",
+    "teams": "Enviar por Teams",
+    "copyUrl": "Copiar enlace",
+    "copied": "Enlace copiado",
+    "outlook": "Enviar por Outlook",
+    "dialogTitle": "Compartir por Teams",
+    "dialogSubtitle": "Envía \"{{title}}\" a las personas que elijas",
+    "searchPlaceholder": "Busca por nombre o email...",
+    "typeToSearch": "Escribe al menos 2 caracteres para buscar",
+    "noResults": "No se encontraron personas",
+    "preview": "Vista previa del mensaje",
+    "cancel": "Cancelar",
+    "send_one": "Enviar a 1 persona",
+    "send_other": "Enviar a {{count}} personas",
+    "sent_one": "Idea enviada a 1 persona por Teams",
+    "sent_other": "Idea enviada a {{count}} personas por Teams",
+    "error": "Error al compartir. Inténtalo de nuevo."
   },
   "mode": {
     "admin": "Admin",

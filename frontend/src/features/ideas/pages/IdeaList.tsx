@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { ideasApi, type Idea, type IdeasListResponse } from '../api/ideas.api';
 import { useAuth } from '../../auth/AuthContext';
+import ShareButton from '../../../shared/components/ShareButton';
 
 // ─── Relative time utility ─────────────────────────────────────────────────────
 
@@ -63,10 +64,11 @@ function timeAgo(dateString: string, locale: string): string {
 
 // ─── Status colors ─────────────────────────────────────────────────────────────
 
-const statusColor: Record<Idea['status'], 'success' | 'warning' | 'info'> = {
+const statusColor: Record<Idea['status'], 'success' | 'warning' | 'info' | 'error'> = {
   open: 'success',
-  in_review: 'warning',
-  converted: 'info',
+  backlog: 'warning',
+  implemented: 'info',
+  discarded: 'error',
 };
 
 // ─── Trending logic ────────────────────────────────────────────────────────────
@@ -287,7 +289,8 @@ function IdeaCard({ idea, isVoted, isTrending, onVote, onRemoveVote, isVoting, l
                   {timeAgo(idea.createdAt, locale)}
                 </Typography>
 
-                {/* Support button */}
+                {/* Support button — only for open ideas */}
+                {idea.status === 'open' && (
                 <Button
                   size="small"
                   variant={isVoted ? 'contained' : 'outlined'}
@@ -314,6 +317,20 @@ function IdeaCard({ idea, isVoted, isTrending, onVote, onRemoveVote, isVoting, l
                 >
                   {isVoted ? t('list.supported') : t('list.support')}
                 </Button>
+                )}
+
+                {/* Share button */}
+                <Box
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <ShareButton
+                    ideaId={idea.id}
+                    title={idea.title}
+                    path={`/ideas/${idea.id}`}
+                    message={t('share.message', { title: idea.title })}
+                  />
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -573,17 +590,56 @@ export default function IdeaList() {
         </Typography>
 
         {isEmpty ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {t('empty')}
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: { xs: 6, md: 10 },
+              px: { xs: 2, sm: 4 },
+              maxWidth: 440,
+              mx: 'auto',
+            }}
+          >
+            {/* Icon */}
+            <Box
+              sx={{
+                width: 72,
+                height: 72,
+                borderRadius: '50%',
+                bgcolor: 'primary.50',
+                border: '2px dashed',
+                borderColor: 'primary.200',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 3,
+              }}
+            >
+              <AddIcon sx={{ fontSize: 32, color: 'primary.main', opacity: 0.7 }} />
+            </Box>
+
+            <Typography variant="h6" fontWeight={800} sx={{ mb: 1 }}>
+              {t('emptyState.headline')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.65 }}>
+              {t('emptyState.subheadline')}
             </Typography>
             <Button
               variant="contained"
+              size="large"
               startIcon={<AddIcon />}
               onClick={() => navigate('/ideas/new')}
-              sx={{ mt: 2 }}
+              sx={{
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
+                minHeight: 48,
+                px: 3,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
             >
-              {t('create.fab')}
+              {t('emptyState.cta')}
             </Button>
           </Box>
         ) : (

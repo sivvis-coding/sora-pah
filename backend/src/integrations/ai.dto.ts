@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, MinLength, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ImproveIdeaDto {
   @IsString()
@@ -71,6 +72,11 @@ export class AskQuestionDto {
  * The user must explicitly trigger this action (human-in-the-loop).
  */
 export class SendToClickUpDto {
+  /** The idea this US was generated from — status is set to 'backlog' automatically */
+  @IsString()
+  @IsNotEmpty()
+  ideaId: string;
+
   @IsString()
   @IsNotEmpty()
   title: string;
@@ -102,4 +108,45 @@ export class SendToClickUpDto {
   @IsString()
   @IsOptional()
   requestedBy?: string;
+}
+
+export class FindSimilarIdeasDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  text: string;
+
+  /** Existing ideas to compare against (id + title + description) */
+  @IsArray()
+  @IsOptional()
+  ideas?: Array<{ id: string; title: string; description: string }>;
+}
+
+export class ConverseTurnDto {
+  @IsString()
+  @IsNotEmpty()
+  role: 'user' | 'assistant';
+
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+}
+
+export class ConverseIdeaDto {
+  /** Latest user message */
+  @IsString()
+  @IsNotEmpty()
+  message: string;
+
+  /** ID of the previous response from OpenAI (null on first turn) */
+  @IsString()
+  @IsOptional()
+  previousResponseId?: string | null;
+}
+
+export class IndexDocsDto {
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  docIds: string[];
 }

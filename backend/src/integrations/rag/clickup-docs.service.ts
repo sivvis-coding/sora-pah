@@ -103,44 +103,44 @@ export class ClickUpDocsService {
   }
 
   /**
+   * Fetch metadata (id, name) for a single doc by ID.
+   */
+  async getDocInfo(docId: string): Promise<ClickUpDoc> {
+    const url = `${this.baseUrl}/workspaces/${this.teamId}/docs/${docId}`;
+    const data = await this.fetchJson<{ id: string; name: string }>(url);
+    return { id: data.id ?? docId, name: data.name ?? docId };
+  }
+
+  /**
    * Get all pages of a document with their content.
    */
   async getDocPages(docId: string): Promise<ClickUpPage[]> {
     const url = `${this.baseUrl}/workspaces/${this.teamId}/docs/${docId}/pages`;
 
-    const data = await this.fetchJson<{
-      pages: Array<{ id: string; name: string; content?: string }>;
-    }>(url);
+    // ClickUp v3 returns a plain array (not wrapped in { pages: [] })
+    const raw = await this.fetchJson<unknown>(url);
+    const topLevel: any[] = Array.isArray(raw) ? raw : (raw as any)?.pages ?? [];
 
-    // If content isn't included in the list response, fetch each page individually
-    const pages: ClickUpPage[] = [];
+    this.logger.log(`  getDocPages(${docId}): ${topLevel.length} top-level pages`);
 
-    for (const page of data.pages ?? []) {
-      if (page.content !== undefined) {
-        pages.push({ id: page.id, name: page.name, content: page.content });
-      } else {
-        // Fetch individual page content
-        try {
-          const pageData = await this.fetchJson<{
-            id: string;
-            name: string;
-            content: string;
-          }>(
-            `${this.baseUrl}/workspaces/${this.teamId}/docs/${docId}/pages/${page.id}`,
-          );
-          pages.push({
-            id: pageData.id,
-            name: pageData.name,
-            content: pageData.content ?? '',
-          });
-        } catch (err) {
-          this.logger.warn(
-            `Failed to fetch page ${page.id} from doc ${docId}: ${err}`,
-          );
-        }
+    // Recursively flatten pages and their subpages
+    return this.flattenPages(topLevel);
+  }
+
+  private flattenPages(
+    pages: Array<{ id: string; name: string; content?: string; pages?: any[] }>,
+  ): ClickUpPage[] {
+    const result: ClickUpPage[] = [];
+    for (const page of pages) {
+      result.push({
+        id: page.id,
+        name: page.name,
+        content: page.content ?? '',
+      });
+      if (page.pages?.length) {
+        result.push(...this.flattenPages(page.pages));
       }
     }
-
-    return pages;
+    return result;
   }
 }

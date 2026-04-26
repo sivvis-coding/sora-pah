@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { IdeaRepository } from './repositories/idea.repository';
 import { VoteRepository } from './repositories/vote.repository';
 import { CommentRepository } from './repositories/comment.repository';
 import { CreateIdeaDto } from './dto/create-idea.dto';
-import { Idea } from './interfaces/idea.interface';
+import { Idea, IdeaUserStory } from './interfaces/idea.interface';
 import { Vote } from './interfaces/vote.interface';
 import { Comment } from './interfaces/comment.interface';
 import { IdeaStatus } from './constants/idea-status';
@@ -18,6 +18,10 @@ export class IdeasService {
 
   findAll(): Promise<Idea[]> {
     return this.ideaRepo.findAll();
+  }
+
+  findClosed(): Promise<Idea[]> {
+    return this.ideaRepo.findClosed();
   }
 
   async findById(id: string): Promise<Idea> {
@@ -40,12 +44,20 @@ export class IdeasService {
     return this.ideaRepo.create(dto, userId);
   }
 
-  updateStatus(id: string, status: IdeaStatus): Promise<Idea> {
-    return this.ideaRepo.updateStatus(id, status);
+  updateStatus(id: string, status: IdeaStatus, discardReason?: string): Promise<Idea> {
+    return this.ideaRepo.updateStatus(id, status, discardReason);
+  }
+
+  updateUserStory(id: string, userStory: IdeaUserStory): Promise<Idea> {
+    return this.ideaRepo.updateUserStory(id, userStory);
   }
 
   async vote(ideaId: string, userId: string, comment?: string): Promise<Vote> {
-    await this.findById(ideaId);
+    const idea = await this.findById(ideaId);
+
+    if (idea.status !== IdeaStatus.OPEN) {
+      throw new BadRequestException('Cannot vote on an idea that is no longer open');
+    }
 
     const existing = await this.voteRepo.findByUserAndIdea(userId, ideaId);
     if (existing) throw new ConflictException('You have already voted on this idea');

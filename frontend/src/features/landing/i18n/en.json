@@ -1,4 +1,33 @@
 {
+  "onboarding": {
+    "welcome": {
+      "eyebrow": "Welcome to SORA, {{name}}",
+      "headline": "Turn opinions into product decisions.",
+      "subheadline": "SORA gives every voice a place — structured, weighted, and connected to execution.",
+      "pillar1": "Capture ideas",
+      "pillar2": "Align stakeholders",
+      "pillar3": "Move fast",
+      "cta": "Get started"
+    },
+    "idea": {
+      "eyebrow": "Step 2 of 3",
+      "headline": "Your team's ideas deserve structure.",
+      "subheadline": "In SORA, any team member can share an idea. It gets refined, voted on, and tied directly to decisions.",
+      "examplesLabel": "Examples of ideas",
+      "example1": "A faster checkout flow for mobile users",
+      "example2": "Automated reports for the operations team",
+      "example3": "Better onboarding for new distributors",
+      "cta": "I'm ready to share my first idea"
+    },
+    "ready": {
+      "headline": "You're all set.",
+      "subheadline": "Share your first idea and kick off the process. It only takes 2 minutes.",
+      "step1": "Describe what you need",
+      "step2": "Explain why it matters",
+      "step3": "Submit — the team will see it instantly",
+      "cta": "Share my first idea"
+    }
+  },
   "hero": {
     "headline": "From opinions to decisions — fast.",
     "subheadline": "SORA helps product teams align stakeholders, prioritize smarter, and move faster.",

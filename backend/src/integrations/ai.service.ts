@@ -7,6 +7,13 @@ export interface IdeaImprovement {
   suggestedSummary: string;
 }
 
+export interface SimilarIdea {
+  id: string;
+  title: string;
+  similarity: number; // 0–1
+  reason: string;
+}
+
 /**
  * Full User Story model matching the team's ClickUp custom fields and
  * the Python LangChain agent structure.
@@ -23,6 +30,20 @@ export interface UserStory {
 }
 
 export type IntentClass = 'bug' | 'help' | 'idea';
+
+export interface IdeaDraft {
+  need: string;
+  why: string;
+  how: string;
+  module: string;
+}
+
+export interface ConverseResult {
+  reply: string;
+  ready: boolean;
+  draft: IdeaDraft | null;
+  responseId: string | null;
+}
 
 // ─── System Prompts ───────────────────────────────────────────────────────────
 
@@ -94,8 +115,10 @@ Genera una User Story con EXACTAMENTE estos campos en formato JSON (responde SÓ
 export class AIService {
   private readonly logger = new Logger(AIService.name);
   private readonly apiKey: string;
-  private readonly openAiUrl = 'https://api.openai.com/v1/chat/completions';
-  private readonly model = 'gpt-4o-mini';
+  private readonly openAiUrl = 'https://api.openai.com/v1/responses';
+  private readonly chatUrl = 'https://api.openai.com/v1/chat/completions';
+  private readonly reasoningModel = 'gpt-5.4';
+  private readonly fastModel = 'gpt-4o';
 
   constructor(
     private readonly config: ConfigService,
@@ -115,11 +138,31 @@ export class AIService {
 
   // ─── OpenAI helpers ──────────────────────────────────────────────────────────
 
+  /**
+   * Call the Responses API (gpt-5.4).
+   *
+   * Key differences from Chat Completions:
+   *  - Endpoint: /v1/responses
+   *  - Body uses `input` (array) instead of `messages`
+   *  - System prompt is a message with role "system" inside `input`
+   *  - No `temperature` — reasoning models use `reasoning.effort` instead
+   *  - Response text is at `output_text` (top-level convenience field)
+   *
+   * effort: "low" for fast/cheap calls (classification, similarity)
+   *         "medium" for quality calls (user story, improvement, evaluation)
+   */
   private async chatCompletion(
     systemPrompt: string,
     userMessage: string,
     history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
+    effort: 'low' | 'medium' | 'high' = 'medium',
   ): Promise<string> {
+    const input: Array<{ role: string; content: string }> = [
+      { role: 'system', content: systemPrompt },
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userMessage },
+    ];
+
     const res = await fetch(this.openAiUrl, {
       method: 'POST',
       headers: {
@@ -127,14 +170,60 @@ export class AIService {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
-        temperature: 0.4,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          // Inject prior conversation turns (mirrors InMemorySaver in the Python agent)
-          ...history.map((m) => ({ role: m.role, content: m.content })),
-          { role: 'user', content: userMessage },
-        ],
+        model: this.reasoningModel,
+        reasoning: { effort },
+        input,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`OpenAI error ${res.status}: ${body}`);
+    }
+
+    const data = (await res.json()) as {
+      output_text?: string;
+      output?: Array<{
+        type: string;
+        content?: Array<{ type: string; text?: string }>;
+      }>;
+    };
+
+    // Prefer top-level convenience field; fall back to output array
+    if (data.output_text) return data.output_text;
+
+    const message = data.output?.find((o) => o.type === 'message');
+    const text = message?.content?.find((c) => c.type === 'output_text')?.text;
+    return text ?? '';
+  }
+
+  /**
+   * Call Chat Completions API (gpt-4o) — fast, no reasoning overhead.
+   * Use for: JSON generation, classification, summarisation, conversation.
+   * Reserve chatCompletion (reasoning model) only for tasks that genuinely
+   * need multi-step reasoning.
+   */
+  private async chatCompletionFast(
+    systemPrompt: string,
+    userMessage: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
+  ): Promise<string> {
+    const messages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: systemPrompt },
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userMessage },
+    ];
+
+    const res = await fetch(this.chatUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.fastModel,
+        messages,
+        temperature: 0.3,
       }),
     });
 
@@ -146,13 +235,23 @@ export class AIService {
     const data = (await res.json()) as {
       choices: Array<{ message: { content: string } }>;
     };
+
     return data.choices[0]?.message?.content ?? '';
   }
 
   private parseJson<T>(raw: string): T {
-    // Strip ```json ... ``` fences if model adds them
-    const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
-    return JSON.parse(cleaned) as T;
+    // 1. Try to extract a JSON block between ```json ... ``` or ``` ... ```
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) return JSON.parse(fenced[1].trim()) as T;
+
+    // 2. Find the first '{' or '[' and parse from there
+    const firstBrace = raw.search(/[{[]/);
+    if (firstBrace !== -1) {
+      return JSON.parse(raw.slice(firstBrace)) as T;
+    }
+
+    // 3. Last resort: parse the whole thing
+    return JSON.parse(raw.trim()) as T;
   }
 
   // ─── Use Case 1: Idea Assistant ──────────────────────────────────────────────
@@ -176,8 +275,7 @@ Solución propuesta: ${input.solutionIdea ?? 'no especificada'}
 
 Responde SÓLO en JSON: { "suggestedTitle": "...", "suggestedSummary": "..." }`;
 
-        const raw = await this.chatCompletion(USER_STORY_SYSTEM_PROMPT, prompt);
-        return this.parseJson<IdeaImprovement>(raw);
+        const raw = await this.chatCompletionFast(USER_STORY_SYSTEM_PROMPT, prompt, []);
       } catch (err) {
         this.logger.error('generateIdeaSummary OpenAI call failed', err);
         // Fall through to mock
@@ -216,7 +314,7 @@ Texto: "${text}"
 
 Responde SÓLO en JSON: { "intent": "bug|help|idea", "confidence": 0.0-1.0 }`;
 
-        const raw = await this.chatCompletion(USER_STORY_SYSTEM_PROMPT, prompt);
+        const raw = await this.chatCompletionFast(USER_STORY_SYSTEM_PROMPT, prompt, []);
         return this.parseJson<{ intent: IntentClass; confidence: number }>(raw);
       } catch (err) {
         this.logger.error('classifyIntent OpenAI call failed', err);
@@ -261,7 +359,7 @@ Responde SÓLO en JSON: { "intent": "bug|help|idea", "confidence": 0.0-1.0 }`;
           .replace('{value}', idea.value ?? 'no especificado')
           .replace('{solutionIdea}', idea.solutionIdea ?? 'no especificada');
 
-        const raw = await this.chatCompletion(USER_STORY_SYSTEM_PROMPT, userMessage);
+        const raw = await this.chatCompletionFast(USER_STORY_SYSTEM_PROMPT, userMessage, []);
         return this.parseJson<UserStory>(raw);
       } catch (err) {
         this.logger.error('generateUserStory OpenAI call failed', err);
@@ -351,7 +449,7 @@ Responde preguntas sobre el producto, sus módulos y procesos.
 Si no tienes información suficiente para responder con precisión, indícalo claramente.
 Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, PlanT, Facturas, Personas) está relacionado con la pregunta.`;
 
-        const raw = await this.chatCompletion(systemPrompt, question, history);
+        const raw = await this.chatCompletionFast(systemPrompt, question, history);
 
         return {
           answer: raw,
@@ -382,6 +480,347 @@ Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, 
     };
   }
 
+  // ─── Use Case 4: Similar Idea Detection ─────────────────────────────────────
+
+  /**
+   * Given user input text + a list of existing ideas, returns the top similar ones.
+   *
+   * Strategy:
+   *  - With OpenAI: semantic similarity via LLM scoring (fast, no embeddings needed)
+   *  - Without OpenAI: keyword overlap scoring (TF-IDF approximation)
+   *
+   * The client passes the existing ideas list to avoid a DB call from this service.
+   * Returns at most 3 results with similarity > 0.45.
+   */
+  async findSimilarIdeas(
+    text: string,
+    ideas: Array<{ id: string; title: string; description: string }>,
+  ): Promise<SimilarIdea[]> {
+    this.logger.log(`findSimilarIdeas called with ${ideas.length} candidates`);
+
+    if (ideas.length === 0) return [];
+
+    if (this.isConfigured()) {
+      try {
+        const ideaList = ideas
+          .slice(0, 30) // cap at 30 to keep prompt size reasonable
+          .map((i, idx) => `${idx + 1}. [${i.id}] ${i.title}: ${i.description}`)
+          .join('\n');
+
+        const prompt = `El usuario está a punto de enviar la siguiente idea:
+"${text}"
+
+Compara semánticamente con las siguientes ideas existentes y devuelve las que sean similares (similitud >= 0.45):
+
+${ideaList}
+
+Responde SÓLO en JSON array (puede ser vacío []):
+[
+  { "id": "<id exacto>", "title": "<título>", "similarity": 0.0-1.0, "reason": "breve explicación en español de por qué son similares" }
+]
+
+Incluye máximo 3 ideas. Si ninguna supera 0.45 de similitud, devuelve [].`;
+
+        const raw = await this.chatCompletionFast(
+          'Eres un asistente que detecta ideas duplicadas o similares en un sistema de gestión de ideas de producto.',
+          prompt,
+          [],
+        );
+        const results = this.parseJson<SimilarIdea[]>(raw);
+        // Defensive: ensure array, filter threshold, cap at 3
+        return Array.isArray(results)
+          ? results
+              .filter((r) => r.similarity >= 0.45)
+              .sort((a, b) => b.similarity - a.similarity)
+              .slice(0, 3)
+          : [];
+      } catch (err) {
+        this.logger.error('findSimilarIdeas OpenAI call failed, using keyword fallback', err);
+      }
+    }
+
+    // ─── Keyword overlap fallback ──────────────────────────────────────────
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean);
+
+    const inputTokens = new Set(normalize(text));
+    const scored: SimilarIdea[] = [];
+
+    for (const idea of ideas) {
+      const ideaTokens = normalize(`${idea.title} ${idea.description}`);
+      const ideaSet = new Set(ideaTokens);
+      const intersection = [...inputTokens].filter((t) => ideaSet.has(t)).length;
+      const union = new Set([...inputTokens, ...ideaSet]).size;
+      const jaccard = union === 0 ? 0 : intersection / union;
+
+      if (jaccard >= 0.2) {
+        scored.push({
+          id: idea.id,
+          title: idea.title,
+          similarity: Math.min(jaccard * 1.8, 0.95), // scale Jaccard to feel more natural
+          reason: 'Comparte palabras clave similares',
+        });
+      }
+    }
+
+    return scored.sort((a, b) => b.similarity - a.similarity).slice(0, 3);
+  }
+
+  // ─── Use Case 5: Idea Quality Coach ─────────────────────────────────────────
+
+  /**
+   * Evaluates the quality of a user's answer during idea creation.
+   *
+   * Returns:
+   *  - approved: true  → the answer is good enough, advance to next phase
+   *  - approved: false → the answer is too shallow; followUp contains a probing question
+   *
+   * The AI plays the role of a PO coach: it accepts thoughtful answers and
+   * pushes back on vague or low-effort ones with a single follow-up question.
+   */
+  async evaluateIdeaInput(input: {
+    phase: 'need' | 'why';
+    need: string;
+    answer: string;
+  }): Promise<{ approved: boolean; followUp: string | null }> {
+    this.logger.log(`evaluateIdeaInput called (phase: ${input.phase})`);
+
+    if (this.isConfigured()) {
+      try {
+        const phaseContext =
+          input.phase === 'need'
+            ? `El usuario está describiendo QUÉ necesita o qué problema tiene.
+Criterios mínimos para aprobar:
+- Tiene al menos 15 palabras
+- Describe una situación concreta, no solo una palabra o frase genérica
+- No es trivial ("quiero un botón", "mejorar la app")`
+            : `El usuario está explicando POR QUÉ es importante esta necesidad (contexto, impacto, frecuencia).
+Idea original del usuario: "${input.need}"
+Criterios mínimos para aprobar:
+- Explica un impacto real (ahorro de tiempo, reducción de errores, mejora de un proceso)
+- No repite simplemente la descripción de la necesidad con otras palabras
+- Aporta contexto de negocio o operativo`;
+
+        const prompt = `Eres un coach de Product Owner. Tu rol es ayudar a los stakeholders a articular sus ideas con claridad y profundidad. NO eres un filtro burocrático — eres un mentor que hace preguntas que ayudan a pensar mejor.
+
+${phaseContext}
+
+Respuesta del usuario: "${input.answer}"
+
+Evalúa si la respuesta cumple los criterios mínimos.
+
+Si SÍ cumple → aprueba y avanza.
+Si NO cumple → rechaza con UNA sola pregunta de seguimiento, breve, directa, en español. La pregunta debe invitar a reflexionar, no regañar. Máximo 1 oración.
+
+Responde SÓLO en JSON:
+{ "approved": true/false, "followUp": "pregunta si no aprobado, null si aprobado" }`;
+
+        const raw = await this.chatCompletionFast(
+          'Eres un asistente que evalúa la calidad de las descripciones de ideas de producto.',
+          prompt,
+          [],
+        );
+        return this.parseJson<{ approved: boolean; followUp: string | null }>(raw);
+      } catch (err) {
+        this.logger.error('evaluateIdeaInput OpenAI call failed', err);
+        // Fail open — don't block the user if AI is down
+        return { approved: true, followUp: null };
+      }
+    }
+
+    // Without OpenAI: simple length heuristic
+    const wordCount = input.answer.trim().split(/\s+/).length;
+    if (wordCount < 8) {
+      return {
+        approved: false,
+        followUp:
+          input.phase === 'need'
+            ? '¿Puedes describir con más detalle qué situación o problema quieres resolver?'
+            : '¿Qué impacto tiene esto en tu trabajo o en el equipo?',
+      };
+    }
+    return { approved: true, followUp: null };
+  }
+
+  // ─── Use Case 6: Conversational Idea Discovery ──────────────────────────────
+
+  /**
+   * Drive a multi-turn conversation to elicit a well-formed idea.
+   *
+   * Uses the Responses API with `store: true` + `previous_response_id` so
+   * OpenAI manages conversation state — the client only sends the latest
+   * user message and the ID of the previous response.
+   *
+   * The AI plays the role of a Product Owner coach:
+   *  - Asks follow-up questions (module, who is affected, frequency, impact…)
+   *  - Sets ready:true only when it has enough context to build a useful idea
+   *  - Returns a structured draft when ready
+   */
+  async converse(
+    userMessage: string,
+    previousResponseId: string | null,
+  ): Promise<ConverseResult> {
+    this.logger.log(`converse called (previousResponseId: ${previousResponseId ?? 'none'})`);
+
+    const CONVERSE_INSTRUCTIONS = `${USER_STORY_SYSTEM_PROMPT}
+
+---
+
+Eres el asistente de captura de ideas de SORA. Tu objetivo es entender la necesidad real del stakeholder mediante una conversación natural, como lo haría un Product Owner experimentado.
+
+REGLAS DE CONVERSACIÓN:
+1. Nunca hagas más de UNA pregunta por turno.
+2. Si la idea es vaga (ej: "exportar CSV", "mejorar la pantalla"), SIEMPRE pregunta:
+   - ¿En qué módulo o pantalla ocurre esto? (Campañas, Promotores, PlanT, Facturas, Personas)
+   - ¿Quién lo necesita y con qué frecuencia?
+   - ¿Qué problema concreto resuelve o qué impacto tiene?
+3. Adapta tus preguntas al contexto — no sigas un guión fijo.
+4. Cuando tengas suficiente contexto (módulo + problema real + impacto), responde con el JSON de cierre.
+5. Si el usuario dice "no sé" o "sin solución" en la pregunta de cómo, acéptalo y avanza.
+
+CUÁNDO CONSIDERAR QUE TIENES SUFICIENTE INFORMACIÓN:
+- Sabes en qué parte del sistema ocurre (módulo/pantalla)
+- Sabes qué problema real resuelve (no solo "mejorar")
+- Sabes quién se beneficia y por qué importa
+
+FORMATO DE RESPUESTA:
+Durante la conversación responde con texto plano en español (solo la siguiente pregunta o comentario).
+
+Cuando tengas suficiente información responde EXCLUSIVAMENTE con este JSON (sin markdown):
+{
+  "ready": true,
+  "reply": "Frase de cierre natural confirmando que ya tienes todo",
+  "draft": {
+    "need": "descripción concisa de la necesidad",
+    "why": "por qué es importante, impacto, contexto de negocio",
+    "how": "solución propuesta si la mencionó, o vacío",
+    "module": "módulo o pantalla específica"
+  }
+}
+
+Mientras conversas (no listo aún) responde EXCLUSIVAMENTE con este JSON:
+{
+  "ready": false,
+  "reply": "tu pregunta o comentario en español"
+}`;
+
+    if (this.isConfigured()) {
+      try {
+        // RAG: enrich instructions with relevant product knowledge for this turn
+        let instructions = CONVERSE_INSTRUCTIONS;
+        if (this.ragService) {
+          try {
+            const chunks = await this.ragService.retrieve(userMessage, 3);
+            if (chunks.length > 0) {
+              const ragContext = chunks
+                .map((c) => `[${c.docTitle} › ${c.pageTitle}]\n${c.content}`)
+                .join('\n---\n');
+              instructions = `${CONVERSE_INSTRUCTIONS}
+
+---
+
+CONOCIMIENTO DEL PRODUCTO RELEVANTE A LO QUE DIJO EL USUARIO:
+Usa esta información para hacer preguntas más precisas y contextualizadas.
+Si el usuario mencionó algo que coincide con una funcionalidad existente, menciona esa referencia en tu pregunta para ayudarle a ubicarse.
+NO respondas con este contenido directamente — úsalo para conversar con criterio.
+
+${ragContext}`;
+            }
+          } catch (ragErr) {
+            this.logger.warn(`RAG retrieval failed in converse, skipping: ${ragErr}`);
+          }
+        }
+
+        // Build Responses API request body
+        const body: Record<string, unknown> = {
+          model: this.fastModel,
+          instructions,
+          input: userMessage,
+          store: true,
+        };
+        if (previousResponseId) {
+          body['previous_response_id'] = previousResponseId;
+        }
+
+        const res = await fetch(this.openAiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errBody = await res.text();
+          throw new Error(`OpenAI error ${res.status}: ${errBody}`);
+        }
+
+        const data = (await res.json()) as {
+          id: string;
+          output_text?: string;
+          output?: Array<{
+            type: string;
+            content?: Array<{ type: string; text?: string }>;
+          }>;
+        };
+
+        // Extract text — prefer output_text helper, fall back to output array
+        let raw = data.output_text ?? '';
+        if (!raw) {
+          const msg = data.output?.find((o) => o.type === 'message');
+          raw = msg?.content?.find((c) => c.type === 'output_text')?.text ?? '';
+        }
+
+        const result = this.parseJson<Omit<ConverseResult, 'responseId'>>(raw);
+        if (typeof result.ready === 'boolean' && typeof result.reply === 'string') {
+          return { ...result, responseId: data.id };
+        }
+        throw new Error('Unexpected shape from converse AI response');
+
+      } catch (err) {
+        this.logger.error('converse OpenAI call failed', err);
+        return {
+          ready: false,
+          reply: previousResponseId
+            ? 'Tuve un problema procesando tu mensaje. ¿Puedes reformularlo con un poco más de detalle?'
+            : '¿Puedes contarme qué problema concreto quieres resolver y quién se ve afectado?',
+          draft: null,
+          responseId: null,
+        };
+      }
+    }
+
+    // ── Mock fallback (no API key) ─────────────────────────────────────────────
+    if (!previousResponseId) {
+      return {
+        ready: false,
+        reply: '¿En qué módulo o pantalla del sistema necesitas esto? (Campañas, Promotores, PlanT, Facturas o Personas)',
+        draft: null,
+        responseId: 'mock-1',
+      };
+    }
+    if (previousResponseId === 'mock-1') {
+      return {
+        ready: false,
+        reply: '¿Quién usaría esta funcionalidad y con qué frecuencia la necesitaría?',
+        draft: null,
+        responseId: 'mock-2',
+      };
+    }
+    return {
+      ready: true,
+      reply: 'Perfecto, creo que tengo suficiente contexto. Revisa el resumen de tu idea.',
+      draft: {
+        need: userMessage,
+        why: 'Impacto en el flujo de trabajo diario',
+        how: '',
+        module: 'Personas',
+      },
+      responseId: 'mock-3',
+    };
+  }
+
   // ─── Prompt templates (for transparency) ────────────────────────────────────
 
   getPromptTemplates() {
@@ -391,6 +830,7 @@ Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, 
       classifyIntent: 'Clasifica en "bug" | "help" | "idea". JSON: { intent, confidence }',
       userStory: USER_STORY_GENERATION_PROMPT,
       knowledgeQA: 'Responde basándote en el contexto del sistema. Menciona el módulo relevante cuando sea aplicable.',
+      similarIdeas: 'Detecta ideas semánticamente similares. JSON: [{ id, title, similarity, reason }]',
     };
   }
 }

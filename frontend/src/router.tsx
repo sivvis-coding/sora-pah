@@ -13,6 +13,9 @@ import { userRoutes } from './features/users/routes';
 import { decisionRoutes } from './features/decisions/routes';
 import { helpRoutes } from './features/help/routes';
 import { myActivityRoutes } from './features/my-activity/routes';
+import { adminRoutes } from './features/admin/routes';
+import { aboutRoutes } from './features/about/routes';
+import { progressBoardRoutes } from './features/progress-board/routes';
 import { AppMode } from './shared/constants';
 
 function PublicRoute({ element }: { element: React.ReactElement }) {
@@ -45,7 +48,9 @@ function AppRoutes() {
         ...decisionRoutes,
         ...helpRoutes,
         ...myActivityRoutes,
-        ...(mode === AppMode.ADMIN ? [...categoryRoutes, ...userRoutes] : []),
+        ...aboutRoutes,
+        ...progressBoardRoutes,
+        ...(mode === AppMode.ADMIN ? [...categoryRoutes, ...userRoutes, ...adminRoutes] : []),
       ],
     },
   ];

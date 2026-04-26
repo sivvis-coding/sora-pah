@@ -1,7 +1,15 @@
 {
   "title": "Decisiones",
-  "subtitle": "Decisiones clave que definen lo que construimos",
-  "empty": "Aún no hay decisiones registradas. Cuando se tomen decisiones de producto, aparecerán aquí con su justificación.",
-  "linkedIdeas_one": "1 idea vinculada",
-  "linkedIdeas_other": "{{count}} ideas vinculadas"
+  "subtitle": "Ideas que ya tienen una decisión tomada — en backlog, implementadas o descartadas",
+  "empty": "Aún no hay ideas con decisión tomada. Cuando una idea pase a backlog o sea descartada, aparecerá aquí.",
+  "ungrouped": "Sin agrupar",
+  "statusLabel": {
+    "backlog": "En backlog",
+    "implemented": "Implementada",
+    "discarded": "Descartada"
+  },
+  "discardReason": "Razón: {{reason}}",
+  "votes_one": "{{count}} apoyo",
+  "votes_other": "{{count}} apoyos",
+  "by": "por {{name}}"
 }

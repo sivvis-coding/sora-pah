@@ -1,10 +1,16 @@
 {
   "title": "Ideas",
   "empty": "No ideas yet. Be the first to share one!",
+  "emptyState": {
+    "headline": "No ideas yet — be the first.",
+    "subheadline": "Share what you need, what's frustrating you, or what you'd love to see improved. It takes 2 minutes.",
+    "cta": "Share the first idea"
+  },
   "status": {
     "open": "Open",
-    "in_review": "In Review",
-    "converted": "Converted"
+    "backlog": "In Backlog",
+    "implemented": "Implemented",
+    "discarded": "Discarded"
   },
   "list": {
     "search": "Search ideas...",
@@ -79,7 +85,78 @@
     "improveWithAI": "Improve with AI",
     "aiSuggestion": "AI Suggestion",
     "acceptSuggestion": "Use this",
-    "dismissSuggestion": "Dismiss"
+    "dismissSuggestion": "Dismiss",
+    "success": {
+      "headline": "Your idea is live! 🎉",
+      "subheadline": "It's now visible to your team. The more support it gets, the higher it rises.",
+      "nextStepsLabel": "What happens next",
+      "step1Title": "Team members can support it",
+      "step1Desc": "Others will see your idea and can vote to push it up the list.",
+      "step2Title": "Invite your team",
+      "step2Desc": "The more voices, the stronger the signal. Share SORA with your colleagues.",
+      "viewIdea": "View my idea",
+      "browseIdeas": "Browse all ideas"
+    }
+  },
+  "convo": {
+    "pageTitle": "Share an idea",
+    "pageSubtitle": "Think out loud — we'll help you shape it.",
+    "inputPlaceholder": "What do you need, or what's bothering you?",
+    "inputHint": "Just start typing — there's no wrong answer",
+    "sendButton": "Send",
+    "continueButton": "Continue",
+    "submitButton": "Share idea",
+    "editingLabel": "Editing",
+    "previewTitle": "Your idea",
+    "previewEmpty": "Your idea will take shape here as you write.",
+    "previewField": {
+      "need": "The need",
+      "why": "Why it matters",
+      "how": "Possible approach",
+      "module": "Module / Screen",
+      "category": "Area"
+    },
+    "aiThinking": "Thinking...",
+    "aiImprove": "Polish with AI",
+    "aiImproving": "Polishing...",
+    "aiImproved": "AI polished your idea",
+    "aiImprovedAccept": "Use this",
+    "aiImprovedDismiss": "Keep original",
+    "categoryLabel": "Pick an area (optional)",
+    "categorySkip": "Not sure yet",
+    "similar": {
+      "title": "Similar idea found",
+      "subtitle": "This might already be in SORA. Check before submitting.",
+      "viewIdea": "View it",
+      "supportIdea": "Support it",
+      "continueAnyway": "Submit mine anyway",
+      "similarity": "{{percent}}% similar"
+    },
+    "intent": {
+      "bug": {
+        "message": "This sounds like a bug.",
+        "subtext": "If something's broken, Freshservice can help you faster.",
+        "primary": "Report in Freshservice",
+        "secondary": "Continue as idea"
+      },
+      "help": {
+        "message": "Sounds like you need help.",
+        "subtext": "The Help section might already have an answer.",
+        "primary": "Go to Help",
+        "secondary": "Continue as idea"
+      }
+    },
+    "prompts": {
+      "q1": "What do you need, or what's frustrating you?",
+      "q2": "Why does this matter? What problem does it solve?",
+      "q3": "Do you have an idea of how it could work? (optional)"
+    },
+    "followUp": {
+      "askWhy": "Good — why is this important to you?",
+      "askHow": "Got it. Do you have a rough idea of how it could work? No pressure if not.",
+      "ready": "That's enough to go on. Review your idea below and submit when you're ready.",
+      "error": "I had trouble processing that. Could you try again?"
+    }
   },
   "detail": {
     "theNeed": "The need",
@@ -109,6 +186,12 @@
     "sentToClickUp": "User story sent to ClickUp successfully",
     "viewInClickUp": "View task",
     "clickUpError": "Failed to send to ClickUp. Please try again.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "deleteIdea": "Delete idea",
+    "deleteConfirm": "Are you sure? This cannot be undone.",
+    "deleteConfirmYes": "Yes, delete"
+  },
+  "share": {
+    "message": "💡 Someone proposed \"{{title}}\" on SORA — what do you think? Support it if it resonates 👇"
   }
 }

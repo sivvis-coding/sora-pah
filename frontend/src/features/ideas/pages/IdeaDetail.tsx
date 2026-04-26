@@ -12,10 +12,6 @@ import {
   Avatar,
   TextField,
   IconButton,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Paper,
   useTheme,
   useMediaQuery,
@@ -27,19 +23,19 @@ import {
   Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
   Lightbulb as LightbulbIcon,
-  AutoAwesome as AIIcon,
 } from '@mui/icons-material';
 import { ideasApi, type IdeaDetail, type Idea, type IdeaComment } from '../api/ideas.api';
-import { aiApi, type UserStory } from '../api/ai.api';
 import { categoriesApi, type Category } from '../../categories/api/categories.api';
 import { useAuth } from '../../auth/AuthContext';
 import { useMode } from '../../../shared/ModeContext';
 import { AppMode } from '../../../shared/constants';
+import ShareButton from '../../../shared/components/ShareButton';
 
-const statusColor: Record<Idea['status'], 'success' | 'warning' | 'info'> = {
+const statusColor: Record<Idea['status'], 'success' | 'warning' | 'info' | 'error'> = {
   open: 'success',
-  in_review: 'warning',
-  converted: 'info',
+  backlog: 'warning',
+  implemented: 'info',
+  discarded: 'error',
 };
 
 function timeAgo(dateString: string, locale: string): string {
@@ -84,44 +80,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Labelled section inside the user story panel */
-function StoryField({
-  label,
-  children,
-  last = false,
-}: {
-  label: string;
-  children: React.ReactNode;
-  last?: boolean;
-}) {
-  return (
-    <Box
-      sx={{
-        py: 1.5,
-        ...(!last && {
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }),
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'text.disabled',
-          mb: 0.5,
-        }}
-      >
-        {label}
-      </Typography>
-      {children}
-    </Box>
-  );
-}
-
 export default function IdeaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation('ideas');
@@ -134,13 +92,8 @@ export default function IdeaDetailPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [statusValue, setStatusValue] = useState<Idea['status'] | ''>('');
   const [commentText, setCommentText] = useState('');
-  const [userStory, setUserStory] = useState<UserStory | null>(null);
-  const [storyLoading, setStoryLoading] = useState(false);
-  const [clickUpSending, setClickUpSending] = useState(false);
-  const [clickUpResult, setClickUpResult] = useState<{ taskId: string; taskUrl: string } | null>(null);
-  const [clickUpError, setClickUpError] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data, isLoading, error } = useQuery<IdeaDetail>({
     queryKey: ['ideas', id],
@@ -172,20 +125,20 @@ export default function IdeaDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ideas', id] }),
   });
 
-  const statusMutation = useMutation({
-    mutationFn: (status: Idea['status']) => ideasApi.updateStatus(id!, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ideas', id] });
-      queryClient.invalidateQueries({ queryKey: ['ideas'] });
-    },
-  });
-
   const addCommentMutation = useMutation({
     mutationFn: (content: string) => ideasApi.addComment(id!, content),
     onSuccess: () => {
       setCommentText('');
       queryClient.invalidateQueries({ queryKey: ['ideas', id, 'comments'] });
       queryClient.invalidateQueries({ queryKey: ['ideas'] });
+    },
+  });
+
+  const deleteIdeaMutation = useMutation({
+    mutationFn: () => ideasApi.remove(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ideas'] });
+      navigate('/ideas', { replace: true });
     },
   });
 
@@ -275,17 +228,26 @@ export default function IdeaDetailPage() {
         </Box>
 
         {/* Title */}
-        <Typography
-          sx={{
-            fontWeight: 800,
-            lineHeight: 1.2,
-            fontSize: { xs: '1.55rem', sm: '2rem' },
-            mb: 2.5,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {data.title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <Typography
+            sx={{
+              fontWeight: 800,
+              lineHeight: 1.2,
+              fontSize: { xs: '1.55rem', sm: '2rem' },
+              mb: 2.5,
+              letterSpacing: '-0.01em',
+              flex: 1,
+            }}
+          >
+            {data.title}
+          </Typography>
+          <ShareButton
+            ideaId={data.id}
+            title={data.title}
+            path={`/ideas/${data.id}`}
+            message={t('share.message', { title: data.title })}
+          />
+        </Box>
 
         {/* Author — readable and human */}
         {author && (
@@ -678,214 +640,48 @@ export default function IdeaDetailPage() {
       </Box>
 
       {/* ══════════════════════════════════════════
-          ADMIN — Status change (bottom, minimal)
+          ADMIN — Delete only (US workspace handles the rest)
       ══════════════════════════════════════════ */}
       {isAdmin && (
-        <Box
-          sx={{
-            pt: 3,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography
-            variant="caption"
-            color="text.disabled"
-            sx={{
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              fontWeight: 700,
-              fontSize: '0.65rem',
-              display: 'block',
-              mb: 1.5,
-            }}
-          >
-            {t('detail.adminPanel')}
-          </Typography>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel sx={{ fontSize: '0.85rem' }}>{t('detail.changeStatus')}</InputLabel>
-            <Select
-              value={statusValue || data.status}
-              label={t('detail.changeStatus')}
-              onChange={(e) => {
-                const newStatus = e.target.value as Idea['status'];
-                setStatusValue(newStatus);
-                statusMutation.mutate(newStatus);
-              }}
-              sx={{ borderRadius: 2, fontSize: '0.85rem' }}
-            >
-              <MenuItem value="open">{t('status.open')}</MenuItem>
-              <MenuItem value="in_review">{t('status.in_review')}</MenuItem>
-              <MenuItem value="converted">{t('status.converted')}</MenuItem>
-            </Select>
-          </FormControl>
-
-          {/* AI: Generate User Story */}
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={storyLoading ? <CircularProgress size={14} /> : <AIIcon />}
-            onClick={async () => {
-              if (!data) return;
-              setStoryLoading(true);
-              setClickUpResult(null);
-              setClickUpError(false);
-              try {
-                const result = await aiApi.generateUserStory({
-                  title: data.title,
-                  description: data.description,
-                  problem: data.problem,
-                  value: data.value,
-                });
-                setUserStory(result);
-              } catch { /* non-critical */ }
-              setStoryLoading(false);
-            }}
-            disabled={storyLoading || !!userStory}
-            sx={{ textTransform: 'none', borderRadius: 2, mt: { xs: 1, md: 0 } }}
-          >
-            {t('detail.generateUserStory')}
-          </Button>
-
-          {userStory && (
-            <Box sx={{ mt: 2, width: '100%' }}>
-              <Paper
+        <Box sx={{ pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ pt: 2, borderTop: '1px dashed', borderColor: 'error.light' }}>
+            {!confirmDelete ? (
+              <Button
+                size="small"
+                color="error"
                 variant="outlined"
-                sx={{ p: 2.5, borderRadius: 2.5, borderColor: 'primary.light' }}
+                startIcon={<DeleteIcon />}
+                onClick={() => setConfirmDelete(true)}
+                sx={{ textTransform: 'none', borderRadius: 2 }}
               >
-                {/* Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <AIIcon fontSize="small" color="primary" />
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    {t('detail.userStory')}
-                  </Typography>
-                </Box>
-
-                {/* User Story Statement */}
-                <StoryField label={t('detail.usStatement')}>
-                  <Typography variant="body2" sx={{ fontStyle: 'italic', lineHeight: 1.7 }}>
-                    {userStory.userStoryStatement}
-                  </Typography>
-                </StoryField>
-
-                {/* Functional Description */}
-                <StoryField label={t('detail.functionalDescription')}>
-                  <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                    {userStory.functionalDescription}
-                  </Typography>
-                </StoryField>
-
-                {/* Acceptance Criteria (Gherkin) */}
-                <StoryField label={t('detail.acceptanceCriteria')}>
-                  <Typography
-                    variant="body2"
-                    component="pre"
-                    sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.8rem',
-                      lineHeight: 1.8,
-                      whiteSpace: 'pre-wrap',
-                      m: 0,
-                      bgcolor: 'action.hover',
-                      p: 1.5,
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    {userStory.acceptanceCriteriaInGherkin}
-                  </Typography>
-                </StoryField>
-
-                {/* Constraints */}
-                {userStory.constraints && (
-                  <StoryField label={t('detail.constraints')}>
-                    <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {userStory.constraints}
-                    </Typography>
-                  </StoryField>
-                )}
-
-                {/* Out of Scope */}
-                {userStory.outOfScope && (
-                  <StoryField label={t('detail.outOfScope')}>
-                    <Typography variant="body2" sx={{ lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {userStory.outOfScope}
-                    </Typography>
-                  </StoryField>
-                )}
-
-                {/* Requested By */}
-                <StoryField label={t('detail.requestedBy')} last>
-                  <Typography variant="body2">{userStory.requestedBy}</Typography>
-                </StoryField>
-
-                {/* ClickUp result / error feedback */}
-                {clickUpResult && (
-                  <Alert
-                    severity="success"
-                    sx={{ mt: 2, borderRadius: 2 }}
-                    action={
-                      <Button
-                        size="small"
-                        color="inherit"
-                        href={clickUpResult.taskUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {t('detail.viewInClickUp')}
-                      </Button>
-                    }
-                  >
-                    {t('detail.sentToClickUp')}
-                  </Alert>
-                )}
-                {clickUpError && (
-                  <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-                    {t('detail.clickUpError')}
-                  </Alert>
-                )}
-
-                {/* Actions */}
-                <Box sx={{ mt: 2.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {!clickUpResult && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={
-                        clickUpSending ? <CircularProgress size={14} color="inherit" /> : <SendIcon />
-                      }
-                      disabled={clickUpSending}
-                      sx={{ textTransform: 'none', borderRadius: 2 }}
-                      onClick={async () => {
-                        setClickUpSending(true);
-                        setClickUpError(false);
-                        try {
-                          const result = await aiApi.sendToClickUp(userStory);
-                          setClickUpResult(result);
-                        } catch {
-                          setClickUpError(true);
-                        }
-                        setClickUpSending(false);
-                      }}
-                    >
-                      {t('detail.sendToClickUp')}
-                    </Button>
-                  )}
-                  <Button
-                    size="small"
-                    color="inherit"
-                    onClick={() => {
-                      setUserStory(null);
-                      setClickUpResult(null);
-                      setClickUpError(false);
-                    }}
-                    sx={{ textTransform: 'none', opacity: 0.7 }}
-                  >
-                    {t('detail.dismiss')}
-                  </Button>
-                </Box>
-              </Paper>
-            </Box>
-          )}
+                {t('detail.deleteIdea')}
+              </Button>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="body2" color="error" fontWeight={600}>
+                  {t('detail.deleteConfirm')}
+                </Typography>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="contained"
+                  disabled={deleteIdeaMutation.isPending}
+                  onClick={() => deleteIdeaMutation.mutate()}
+                  sx={{ textTransform: 'none', borderRadius: 2, boxShadow: 'none' }}
+                >
+                  {t('detail.deleteConfirmYes')}
+                </Button>
+                <Button
+                  size="small"
+                  color="inherit"
+                  onClick={() => setConfirmDelete(false)}
+                  sx={{ textTransform: 'none', opacity: 0.6 }}
+                >
+                  {tShared('common.cancel')}
+                </Button>
+              </Box>
+            )}
+          </Box>
         </Box>
       )}
     </Box>

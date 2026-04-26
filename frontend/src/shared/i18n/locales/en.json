@@ -9,7 +9,11 @@
     "decisions": "Decisions",
     "help": "Help",
     "myActivity": "My Activity",
-    "adminSection": "Admin"
+    "adminSection": "Admin",
+    "workspace": "US Workspace",
+    "admin": "System",
+    "about": "What is SORA?",
+    "progress": "Progress Board"
   },
   "common": {
     "loading": "Loading...",
@@ -17,6 +21,25 @@
     "errorLoadProducts": "Failed to load products",
     "cancel": "Cancel",
     "back": "Back"
+  },
+  "share": {
+    "tooltip": "Share",
+    "teams": "Send via Teams",
+    "copyUrl": "Copy link",
+    "copied": "Link copied",
+    "outlook": "Send via Outlook",
+    "dialogTitle": "Share via Teams",
+    "dialogSubtitle": "Send \"{{title}}\" to the people you choose",
+    "searchPlaceholder": "Search by name or email...",
+    "typeToSearch": "Type at least 2 characters to search",
+    "noResults": "No people found",
+    "preview": "Message preview",
+    "cancel": "Cancel",
+    "send_one": "Send to 1 person",
+    "send_other": "Send to {{count}} people",
+    "sent_one": "Idea sent to 1 person via Teams",
+    "sent_other": "Idea sent to {{count}} people via Teams",
+    "error": "Failed to share. Please try again."
   },
   "mode": {
     "admin": "Admin",

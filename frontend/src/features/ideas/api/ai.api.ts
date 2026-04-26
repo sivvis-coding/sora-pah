@@ -34,6 +34,27 @@ export interface ClickUpResult {
   taskUrl: string;
 }
 
+export interface SimilarIdea {
+  id: string;
+  title: string;
+  similarity: number;
+  reason: string;
+}
+
+export interface IdeaDraft {
+  need: string;
+  why: string;
+  how: string;
+  module: string;
+}
+
+export interface ConverseResult {
+  reply: string;
+  ready: boolean;
+  draft: IdeaDraft | null;
+  responseId: string | null;
+}
+
 export const aiApi = {
   improveIdea: async (data: {
     description: string;
@@ -86,8 +107,35 @@ export const aiApi = {
    * This is the human-in-the-loop gate — only called after the user
    * reviews and explicitly confirms the generated story.
    */
-  sendToClickUp: async (story: UserStory): Promise<ClickUpResult> => {
-    const res = await apiClient.post<ClickUpResult>('/ai/send-to-clickup', story);
+  sendToClickUp: async (ideaId: string, story: UserStory): Promise<ClickUpResult> => {
+    const res = await apiClient.post<ClickUpResult>('/ai/send-to-clickup', { ideaId, ...story });
+    return res.data;
+  },
+
+  /**
+   * Detect semantically similar existing ideas before submission.
+   * Pass the current ideas list from the client cache to avoid extra DB calls.
+   */
+  findSimilarIdeas: async (
+    text: string,
+    ideas: Array<{ id: string; title: string; description: string }>,
+  ): Promise<SimilarIdea[]> => {
+    const res = await apiClient.post<SimilarIdea[]>('/ai/find-similar-ideas', { text, ideas });
+    return res.data;
+  },
+  /**
+   * Multi-turn conversational idea discovery.
+   * Uses Responses API with previous_response_id — OpenAI manages state.
+   * Only send the latest user message + the ID from the previous turn.
+   */
+  converseIdea: async (
+    message: string,
+    previousResponseId: string | null,
+  ): Promise<ConverseResult> => {
+    const res = await apiClient.post<ConverseResult>('/ai/converse', {
+      message,
+      previousResponseId,
+    });
     return res.data;
   },
 };
