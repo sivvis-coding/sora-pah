@@ -1,0 +1,17 @@
+{
+  "documentation": "Documentación",
+  "noDocsIndexed": "No hay documentos indexados todavía.",
+  "selectPage": "Selecciona una página del panel lateral",
+  "selectPageHint": "Selecciona una página del panel izquierdo para leerla.",
+  "emptyTitle": "Ningún documento seleccionado",
+  "emptySubtitle": "Elige un documento del panel lateral para empezar a navegar.",
+  "openInClickUp": "Abrir en ClickUp",
+  "showSidebar": "Mostrar panel",
+  "tapMenuToStart": "Toca el menú para explorar documentos",
+  "chatTitle": "Asistente de Conocimiento",
+  "chatEmptyState": "Pregunta lo que quieras sobre la documentación...",
+  "chatPlaceholder": "Haz una pregunta...",
+  "chatError": "Lo siento, no pude procesar tu pregunta. Intenta de nuevo.",
+  "sources": "Fuentes",
+  "subpages": "Subpáginas"
+}

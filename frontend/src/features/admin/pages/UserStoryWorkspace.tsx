@@ -6,6 +6,7 @@ import {
   Avatar,
   Box,
   Button,
+  ButtonGroup,
   Chip,
   CircularProgress,
   Collapse,
@@ -16,6 +17,10 @@ import {
   Divider,
   IconButton,
   InputAdornment,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Paper,
   TextField,
   Tooltip,
@@ -33,9 +38,12 @@ import {
   Cancel as DiscardIcon,
   ArrowBack as BackIcon,
   Person as PersonIcon,
+  ArrowDropDown as DropDownIcon,
+  Bolt as BoltIcon,
 } from '@mui/icons-material';
 import { ideasApi, type Idea } from '../../ideas/api/ideas.api';
 import { aiApi, type UserStory, type ChatMessage } from '../../ideas/api/ai.api';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SortBy = 'votes' | 'newest';
@@ -183,18 +191,19 @@ function IdeaSelector({
                       {idea.title}
                     </Typography>
                     <StatusChip status={idea.status} />
-                    {idea.category && (
+                    {(idea.tags ?? []).slice(0, 2).map((tag) => (
                       <Chip
-                        label={idea.category.name}
+                        key={tag.id}
+                        label={tag.name}
                         size="small"
                         sx={{
                           height: 18,
                           fontSize: '0.65rem',
-                          bgcolor: idea.category.color ?? undefined,
-                          color: idea.category.color ? 'white' : undefined,
+                          bgcolor: tag.color + '22',
+                          color: tag.color,
                         }}
                       />
-                    )}
+                    ))}
                   </Box>
                   <Typography
                     variant="caption"
@@ -319,6 +328,237 @@ function DiscardDialog({
   );
 }
 
+// ─── ClickUp split button ─────────────────────────────────────────────────────
+
+function ClickUpSplitButton({
+  isSent,
+  isPending,
+  taskUrl,
+  onSend,
+}: {
+  isSent: boolean;
+  isPending: boolean;
+  taskUrl: string | null;
+  onSend: () => void;
+}) {
+  const { t } = useTranslation('admin');
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+
+  if (isSent && taskUrl) {
+    // Already sent — show compact chip + open link
+    return (
+      <ButtonGroup size="small" variant="outlined" color="inherit">
+        <Button
+          startIcon={<ImplementedIcon sx={{ fontSize: 14, color: 'success.main' }} />}
+          sx={{ textTransform: 'none', color: 'text.secondary', borderColor: 'divider', fontSize: '0.8rem', pointerEvents: 'none' }}
+        >
+          {t('ws.actions.sentToClickUp')}
+        </Button>
+        <Tooltip title={t('ws.actions.viewInClickUp')}>
+          <Button
+            component="a"
+            href={taskUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ borderColor: 'divider', color: 'text.secondary', minWidth: 36 }}
+          >
+            <ClickUpIcon sx={{ fontSize: 14 }} />
+          </Button>
+        </Tooltip>
+      </ButtonGroup>
+    );
+  }
+
+  if (isSent && !taskUrl) {
+    // Sent but no URL yet (status === backlog, no fresh result)
+    return (
+      <Button
+        size="small"
+        variant="outlined"
+        color="inherit"
+        startIcon={<ImplementedIcon sx={{ fontSize: 14, color: 'success.main' }} />}
+        sx={{ textTransform: 'none', color: 'text.secondary', borderColor: 'divider', fontSize: '0.8rem', pointerEvents: 'none' }}
+      >
+        {t('ws.actions.sentToClickUp')}
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <ButtonGroup size="small" variant="contained" disableElevation>
+        <Button
+          startIcon={isPending ? <CircularProgress size={13} color="inherit" /> : <BoltIcon sx={{ fontSize: 15 }} />}
+          disabled={isPending}
+          onClick={onSend}
+          sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', pl: 1.5, pr: 1.25 }}
+        >
+          {t('ws.actions.sendToClickUp')}
+        </Button>
+        <Button
+          size="small"
+          disabled={isPending}
+          onClick={(e) => setMenuAnchor(e.currentTarget)}
+          sx={{ px: 0.5, minWidth: 28 }}
+        >
+          <DropDownIcon sx={{ fontSize: 16 }} />
+        </Button>
+      </ButtonGroup>
+
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { minWidth: 200, borderRadius: 2 } } }}
+      >
+        <MenuItem dense disabled sx={{ opacity: '1 !important' }}>
+          <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            {t('ws.actions.clickupMenuTitle')}
+          </Typography>
+        </MenuItem>
+        <MenuItem
+          dense
+          onClick={() => { onSend(); setMenuAnchor(null); }}
+          disabled={isPending}
+        >
+          <ListItemIcon><BoltIcon fontSize="small" /></ListItemIcon>
+          <ListItemText primary={t('ws.actions.sendToClickUp')} primaryTypographyProps={{ fontSize: '0.85rem' }} />
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
+// ─── Story action bar ─────────────────────────────────────────────────────────
+
+function StoryActionBar({
+  currentStory,
+  isDiscarded,
+  isImplemented,
+  isSentToClickUp,
+  clickUpTaskUrl,
+  statusPending,
+  clickUpPending,
+  clickUpError,
+  statusError,
+  onImplement,
+  onDiscard,
+  onSendToClickUp,
+}: {
+  currentStory: UserStory | null;
+  isDiscarded: boolean;
+  isImplemented: boolean;
+  isSentToClickUp: boolean;
+  clickUpTaskUrl: string | null;
+  statusPending: boolean;
+  clickUpPending: boolean;
+  clickUpError: boolean;
+  statusError: string | null;
+  onImplement: () => void;
+  onDiscard: () => void;
+  onSendToClickUp: () => void;
+}) {
+  const { t } = useTranslation('admin');
+
+  if (!currentStory) return null;
+
+  return (
+    <Collapse in unmountOnExit>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+          px: 1.5,
+          py: 1.25,
+          mb: 1,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+        }}
+      >
+        {/* Left: lifecycle actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" color="text.disabled" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mr: 0.5 }}>
+            {t('ws.actionBar.label')}
+          </Typography>
+
+          {!isDiscarded && !isImplemented && (
+            <>
+              <Tooltip title={t('ws.actions.markImplemented')}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  startIcon={statusPending ? <CircularProgress size={13} color="inherit" /> : <ImplementedIcon sx={{ fontSize: 15 }} />}
+                  disabled={statusPending}
+                  onClick={onImplement}
+                  sx={{ textTransform: 'none', fontSize: '0.82rem', borderRadius: 1.5 }}
+                >
+                  {t('ws.actions.markImplemented')}
+                </Button>
+              </Tooltip>
+              <Tooltip title={t('ws.actions.discard')}>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={onDiscard}
+                  sx={{ border: '1px solid', borderColor: 'error.light', borderRadius: 1.5, p: 0.75 }}
+                >
+                  <DiscardIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+
+          {isImplemented && (
+            <Chip
+              icon={<ImplementedIcon sx={{ fontSize: 14 }} />}
+              label={t('ws.status.implemented')}
+              color="success"
+              size="small"
+              variant="outlined"
+            />
+          )}
+
+          {isDiscarded && (
+            <Chip
+              icon={<DiscardIcon sx={{ fontSize: 14 }} />}
+              label={t('ws.status.discarded')}
+              color="error"
+              size="small"
+              variant="outlined"
+            />
+          )}
+        </Box>
+
+        {/* Right: ClickUp integration */}
+        {!isDiscarded && (
+          <ClickUpSplitButton
+            isSent={isSentToClickUp}
+            isPending={clickUpPending}
+            taskUrl={clickUpTaskUrl}
+            onSend={onSendToClickUp}
+          />
+        )}
+      </Box>
+
+      {/* Inline errors */}
+      {statusError && (
+        <Alert severity="error" sx={{ borderRadius: 2, mb: 1, py: 0.5 }}>{statusError}</Alert>
+      )}
+      {clickUpError && (
+        <Alert severity="error" sx={{ borderRadius: 2, mb: 1, py: 0.5 }}>{t('ws.actions.clickUpError')}</Alert>
+      )}
+    </Collapse>
+  );
+}
+
 // ─── Chat workspace ───────────────────────────────────────────────────────────
 
 function ChatWorkspace({
@@ -349,7 +589,7 @@ function ChatWorkspace({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [clickUpResult, setClickUpResult] = useState<{ taskUrl: string } | null>(null);
+  const [clickUpTaskUrl, setClickUpTaskUrl] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
@@ -359,6 +599,7 @@ function ChatWorkspace({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
   const generateStory = async (currentHistory: ChatMessage[]) => {
     setGenerating(true);
     try {
@@ -371,10 +612,7 @@ function ChatWorkspace({
       });
       setCurrentStory(story);
 
-      // Persist to Cosmos — fire and forget, non-blocking
-      ideasApi.updateUserStory(idea.id, story).catch(() => {
-        // non-critical — US is in state anyway
-      });
+      ideasApi.updateUserStory(idea.id, story).catch(() => {});
 
       const aiMsg: WorkspaceMessage = {
         id: uid(),
@@ -405,7 +643,6 @@ function ChatWorkspace({
 
     setLoading(true);
     try {
-      // Build a context-aware prompt that includes the current story
       const contextPrompt = currentStory
         ? `Contexto actual de la User Story:\n${JSON.stringify(currentStory, null, 2)}\n\nSolicitud del PO: ${text}`
         : text;
@@ -413,7 +650,6 @@ function ChatWorkspace({
       const res = await aiApi.askQuestion(contextPrompt, updatedHistory.slice(0, -1));
       const aiReply = res.answer;
 
-      // Try to extract an updated story from the response if it contains JSON
       let updatedStory: UserStory | undefined;
       try {
         const jsonMatch = aiReply.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -424,7 +660,7 @@ function ChatWorkspace({
             setCurrentStory(parsed);
           }
         }
-      } catch { /* no JSON in response, that's fine */ }
+      } catch { /* no JSON */ }
 
       setMessages((prev) => [...prev, { id: uid(), from: 'ai', text: aiReply, story: updatedStory }]);
       setHistory((prev) => [...prev, { role: 'assistant', content: aiReply }]);
@@ -453,20 +689,20 @@ function ChatWorkspace({
       return aiApi.sendToClickUp(idea.id, currentStory);
     },
     onSuccess: (result) => {
-      setClickUpResult(result);
+      setClickUpTaskUrl(result.taskUrl);
       queryClient.invalidateQueries({ queryKey: ['ideas'] });
     },
   });
 
   const isDiscarded = statusMutation.data?.status === 'discarded' || idea.status === 'discarded';
   const isImplemented = statusMutation.data?.status === 'implemented' || idea.status === 'implemented';
-  const isSentToClickUp = !!clickUpResult || idea.status === 'backlog';
+  const isSentToClickUp = !!clickUpTaskUrl || idea.status === 'backlog';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, height: '100%' }}>
 
-      {/* ── Left: idea info + actions ──────────────────────────────────────── */}
-      <Box sx={{ width: { md: 280 }, flexShrink: 0 }}>
+      {/* ── Left: idea info ────────────────────────────────────────────────── */}
+      <Box sx={{ width: { md: 260 }, flexShrink: 0 }}>
         <Button
           startIcon={<BackIcon />}
           onClick={onBack}
@@ -478,6 +714,7 @@ function ChatWorkspace({
         </Button>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}>
+          {/* Title + status */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="subtitle2" fontWeight={700} sx={{ lineHeight: 1.4, flex: 1, mr: 1 }}>
               {idea.title}
@@ -485,6 +722,7 @@ function ChatWorkspace({
             <StatusChip status={statusMutation.data?.status ?? idea.status} />
           </Box>
 
+          {/* Author */}
           {idea.author && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
               {idea.author.photoBase64 ? (
@@ -516,19 +754,21 @@ function ChatWorkspace({
             </Box>
           ))}
 
-          {/* Category + votes */}
+          {/* Tags + votes */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-            {idea.category && (
+            {(idea.tags ?? []).slice(0, 3).map((tag) => (
               <Chip
-                label={idea.category.name}
+                key={tag.id}
+                label={tag.name}
                 size="small"
                 variant="outlined"
                 sx={{
                   height: 20, fontSize: '0.65rem',
-                  ...(idea.category.color ? { borderColor: idea.category.color, color: idea.category.color } : {}),
+                  borderColor: tag.color + '66',
+                  color: tag.color,
                 }}
               />
-            )}
+            ))}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <VoteIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
               <Typography variant="caption" color="text.disabled" fontWeight={700}>
@@ -539,113 +779,44 @@ function ChatWorkspace({
 
           <Divider sx={{ mb: 2 }} />
 
-          {/* Actions */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {/* Generate US */}
-            {!isDiscarded && !isImplemented && (
-              <Button
-                fullWidth
-                variant={currentStory ? 'outlined' : 'contained'}
-                size="small"
-                startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <AIIcon />}
-                disabled={generating}
-                onClick={() => {
-                  generateStory([]);
-                }}
-                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-              >
-                {generating
-                  ? t('ws.actions.generating')
-                  : currentStory
-                    ? t('ws.actions.regenerate')
-                    : t('ws.actions.generate')}
-              </Button>
-            )}
+          {/* Generate button — única acción en sidebar */}
+          {!isDiscarded && !isImplemented && (
+            <Button
+              fullWidth
+              variant={currentStory ? 'outlined' : 'contained'}
+              size="small"
+              startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <AIIcon />}
+              disabled={generating}
+              onClick={() => generateStory([])}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+            >
+              {generating
+                ? t('ws.actions.generating')
+                : currentStory
+                  ? t('ws.actions.regenerate')
+                  : t('ws.actions.generate')}
+            </Button>
+          )}
 
-            {/* Send to ClickUp */}
-            {!isDiscarded && (
-              <Button
-                fullWidth
-                variant="contained"
-                size="small"
-                startIcon={clickUpMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <ClickUpIcon />}
-                disabled={!currentStory || clickUpMutation.isPending || isSentToClickUp}
-                onClick={() => clickUpMutation.mutate()}
-                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-              >
-                {isSentToClickUp ? t('ws.actions.sentToClickUp') : t('ws.actions.sendToClickUp')}
-              </Button>
-            )}
-
-            {clickUpResult && (
-              <Button
-                fullWidth
-                variant="outlined"
-                size="small"
-                startIcon={<ClickUpIcon />}
-                href={clickUpResult.taskUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ textTransform: 'none', borderRadius: 2 }}
-              >
-                {t('ws.actions.viewInClickUp')}
-              </Button>
-            )}
-
-            {/* Mark implemented */}
-            {!isDiscarded && !isImplemented && (
-              <Button
-                fullWidth
-                variant="outlined"
-                size="small"
-                color="success"
-                startIcon={statusMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <ImplementedIcon />}
-                disabled={statusMutation.isPending}
-                onClick={() => statusMutation.mutate({ status: 'implemented' })}
-                sx={{ textTransform: 'none', borderRadius: 2 }}
-              >
-                {t('ws.actions.markImplemented')}
-              </Button>
-            )}
-
-            {/* Discard */}
-            {!isDiscarded && !isImplemented && (
-              <Button
-                fullWidth
-                variant="outlined"
-                size="small"
-                color="error"
-                startIcon={<DiscardIcon />}
-                onClick={() => setDiscardOpen(true)}
-                sx={{ textTransform: 'none', borderRadius: 2 }}
-              >
-                {t('ws.actions.discard')}
-              </Button>
-            )}
-
-            {/* Discard reason display */}
-            {isDiscarded && (statusMutation.data?.discardReason ?? idea.discardReason) && (
-              <Alert severity="error" sx={{ borderRadius: 2, mt: 0.5 }}>
-                <Typography variant="caption">
-                  {statusMutation.data?.discardReason ?? idea.discardReason}
-                </Typography>
-              </Alert>
-            )}
-
-            {statusError && <Alert severity="error" sx={{ borderRadius: 2 }}>{statusError}</Alert>}
-            {clickUpMutation.isError && <Alert severity="error" sx={{ borderRadius: 2 }}>{t('ws.actions.clickUpError')}</Alert>}
-          </Box>
+          {/* Discard reason */}
+          {isDiscarded && (statusMutation.data?.discardReason ?? idea.discardReason) && (
+            <Alert severity="error" sx={{ borderRadius: 2, mt: 1.5 }}>
+              <Typography variant="caption">
+                {statusMutation.data?.discardReason ?? idea.discardReason}
+              </Typography>
+            </Alert>
+          )}
         </Paper>
       </Box>
 
-      {/* ── Right: chat + story ────────────────────────────────────────────── */}
+      {/* ── Right: chat + action bar ───────────────────────────────────────── */}
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
           {t('ws.chat.title')}
         </Typography>
 
         {/* Messages */}
-        <Box sx={{ flex: 1, overflowY: 'auto', maxHeight: { xs: 400, md: 520 }, mb: 2, pr: 0.5 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', maxHeight: { xs: 400, md: 460 }, mb: 2, pr: 0.5 }}>
           {messages.map((msg) => (
             <Box
               key={msg.id}
@@ -668,7 +839,6 @@ function ChatWorkspace({
                   {msg.text}
                 </Typography>
               </Paper>
-              {/* Inline story card */}
               {msg.story && (
                 <Box sx={{ maxWidth: '95%', width: '100%' }}>
                   <StoryCard story={msg.story} />
@@ -687,7 +857,7 @@ function ChatWorkspace({
           <div ref={endRef} />
         </Box>
 
-        {/* Current story summary (sticky at bottom) */}
+        {/* Current story summary */}
         {currentStory && !generating && (
           <Collapse in unmountOnExit>
             <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 1.5, borderColor: 'primary.light', bgcolor: 'primary.50' }}>
@@ -703,6 +873,22 @@ function ChatWorkspace({
             </Paper>
           </Collapse>
         )}
+
+        {/* ── Action bar — aparece cuando hay story ─────────────────────── */}
+        <StoryActionBar
+          currentStory={currentStory}
+          isDiscarded={isDiscarded}
+          isImplemented={isImplemented}
+          isSentToClickUp={isSentToClickUp}
+          clickUpTaskUrl={clickUpTaskUrl}
+          statusPending={statusMutation.isPending}
+          clickUpPending={clickUpMutation.isPending}
+          clickUpError={clickUpMutation.isError}
+          statusError={statusError}
+          onImplement={() => statusMutation.mutate({ status: 'implemented' })}
+          onDiscard={() => setDiscardOpen(true)}
+          onSendToClickUp={() => clickUpMutation.mutate()}
+        />
 
         {/* Input */}
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>

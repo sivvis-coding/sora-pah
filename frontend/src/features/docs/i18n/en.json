@@ -1,0 +1,17 @@
+{
+  "documentation": "Documentation",
+  "noDocsIndexed": "No documents indexed yet.",
+  "selectPage": "Select a page from the sidebar",
+  "selectPageHint": "Select a page from the left sidebar to read it.",
+  "emptyTitle": "No document selected",
+  "emptySubtitle": "Pick a document from the sidebar to start browsing.",
+  "openInClickUp": "Open in ClickUp",
+  "showSidebar": "Show sidebar",
+  "tapMenuToStart": "Tap the menu to browse documents",
+  "chatTitle": "Knowledge Assistant",
+  "chatEmptyState": "Ask anything about the documentation...",
+  "chatPlaceholder": "Ask a question...",
+  "chatError": "Sorry, I couldn't process your question. Please try again.",
+  "sources": "Sources",
+  "subpages": "Subpages"
+}

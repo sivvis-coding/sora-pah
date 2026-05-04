@@ -79,6 +79,10 @@ export class IdeasService {
     return this.ideaRepo.softDelete(id);
   }
 
+  async updateTags(id: string, tagIds: string[]): Promise<Idea> {
+    return this.ideaRepo.updateTags(id, tagIds);
+  }
+
   // ─── Comments ──────────────────────────────────────────────────────────────
 
   getComments(ideaId: string): Promise<Comment[]> {

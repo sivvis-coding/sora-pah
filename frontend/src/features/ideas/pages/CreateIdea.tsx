@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,9 +29,9 @@ import {
 } from '@mui/icons-material';
 import { ideasApi } from '../api/ideas.api';
 import { aiApi, type IdeaImprovement } from '../api/ai.api';
-import { categoriesApi, type Category } from '../../categories/api/categories.api';
 import { classifyIntent, type Intent } from '../utils/classify-intent';
-import { EXTERNAL_LINKS } from '../../../shared/constants';
+import { useSetup, useAppLinks } from '../../setup/SetupProvider';
+import TagInput from '../../tags/components/TagInput';
 import IdeaCreated from './IdeaCreated';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -40,10 +40,10 @@ interface ConversationForm {
   need: string;
   why: string;
   how: string;
-  categoryId: string;
+  tagIds: string[];
 }
 
-const EMPTY: ConversationForm = { need: '', why: '', how: '', categoryId: '' };
+const EMPTY: ConversationForm = { need: '', why: '', how: '', tagIds: [] };
 const TOTAL_STEPS = 5;
 
 const CLASSIFY_MIN_LENGTH = 20;
@@ -90,10 +90,10 @@ function StepProgress({ total, current }: { total: number; current: number }) {
 
 // ─── Intent banner ─────────────────────────────────────────────────────────────
 
-function IntentBanner({ intent, onDismiss }: { intent: 'bug' | 'help'; onDismiss: () => void }) {
+function IntentBanner({ intent, onDismiss, links }: { intent: 'bug' | 'help'; onDismiss: () => void; links: { freshservice: string; help: string } }) {
   const { t } = useTranslation('ideas');
   const isBug = intent === 'bug';
-  const href = isBug ? EXTERNAL_LINKS.FRESHSERVICE : EXTERNAL_LINKS.HELP;
+  const href = isBug ? links.freshservice : links.help;
 
   return (
     <Fade in timeout={250}>
@@ -118,7 +118,9 @@ function IntentBanner({ intent, onDismiss }: { intent: 'bug' | 'help'; onDismiss
             size="small"
             color={isBug ? 'warning' : 'info'}
             href={href}
-            {...(isBug ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+            target="_blank"
+            rel="noopener noreferrer"
+            disabled={!href}
             sx={{ color: 'white' }}
           >
             {t(`create.intent.${intent}.primary`)}
@@ -135,59 +137,6 @@ function IntentBanner({ intent, onDismiss }: { intent: 'bug' | 'help'; onDismiss
         </Box>
       </Alert>
     </Fade>
-  );
-}
-
-// ─── Category selector ─────────────────────────────────────────────────────────
-
-function CategorySelector({
-  categories,
-  value,
-  onChange,
-}: {
-  categories: Category[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  const { t } = useTranslation('ideas');
-
-  return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-      <Chip
-        label={t('create.categoryNotSure')}
-        onClick={() => onChange('')}
-        variant={value === '' ? 'filled' : 'outlined'}
-        color={value === '' ? 'primary' : 'default'}
-        sx={{
-          fontSize: { xs: '0.875rem', md: '0.95rem' },
-          height: { xs: 40, md: 44 },
-          px: 1,
-          borderStyle: value === '' ? 'solid' : 'dashed',
-          borderWidth: 2,
-          '&.MuiChip-outlined': { borderWidth: 2 },
-        }}
-      />
-      {categories.map((cat) => (
-        <Chip
-          key={cat.id}
-          label={cat.name}
-          onClick={() => onChange(cat.id)}
-          variant={value === cat.id ? 'filled' : 'outlined'}
-          color={value === cat.id ? 'primary' : 'default'}
-          sx={{
-            fontSize: { xs: '0.875rem', md: '0.95rem' },
-            height: { xs: 40, md: 44 },
-            px: 1,
-            ...(cat.color && value !== cat.id
-              ? { borderColor: cat.color, color: cat.color, borderWidth: 2, '&.MuiChip-outlined': { borderWidth: 2 } }
-              : {}),
-            ...(cat.color && value === cat.id
-              ? { bgcolor: cat.color, '&:hover': { bgcolor: cat.color } }
-              : {}),
-          }}
-        />
-      ))}
-    </Box>
   );
 }
 
@@ -239,6 +188,9 @@ export default function CreateIdea() {
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { status } = useSetup();
+  const hasOpenAI = !!status?.features?.openai;
+  const appLinks = useAppLinks();
 
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -252,11 +204,6 @@ export default function CreateIdea() {
   // AI suggestion state
   const [aiSuggestion, setAiSuggestion] = useState<IdeaImprovement | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-
-  const { data: categories = [], isLoading: catsLoading } = useQuery<Category[]>({
-    queryKey: ['categories'],
-    queryFn: categoriesApi.listActive,
-  });
 
   // ─── Debounced intent classification ──────────────────────────────────────
 
@@ -287,7 +234,7 @@ export default function CreateIdea() {
         problem: form.why,
         value: form.why,
         solutionIdea: form.how || undefined,
-        categoryId: form.categoryId || undefined,
+        tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
       });
     },
     onSuccess: (idea) => {
@@ -314,7 +261,7 @@ export default function CreateIdea() {
     return true;
   };
 
-  const isSkippable = (step === 2 && !form.how) || (step === 3 && !form.categoryId);
+  const isSkippable = (step === 2 && !form.how) || (step === 3 && form.tagIds.length === 0);
 
   const handleImproveWithAI = async () => {
     setAiLoading(true);
@@ -330,8 +277,6 @@ export default function CreateIdea() {
     }
     setAiLoading(false);
   };
-
-  const selectedCategory = categories.find((c) => c.id === form.categoryId);
 
   // ─── Success screen ───────────────────────────────────────────────────────
 
@@ -355,6 +300,18 @@ export default function CreateIdea() {
       }}
     >
       <StepProgress total={TOTAL_STEPS} current={step} />
+
+      {/* Switch to AI assistant mode */}
+      {hasOpenAI && step === 0 && (
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => navigate('/ideas/new')}
+          sx={{ textTransform: 'none', fontWeight: 600, mb: 1.5, p: 0, minWidth: 0, fontSize: '0.8rem' }}
+        >
+          {t('create.switchToAssistant')}
+        </Button>
+      )}
 
       <Fade in={visible} timeout={200}>
         <Box sx={{ flex: 1 }}>
@@ -392,6 +349,7 @@ export default function CreateIdea() {
                   <IntentBanner
                     intent={detectedIntent}
                     onDismiss={() => { setIntentDismissed(true); setDetectedIntent(null); }}
+                    links={appLinks}
                   />
                 )}
               </Collapse>
@@ -462,7 +420,7 @@ export default function CreateIdea() {
             </>
           )}
 
-          {/* ── Step 3: Where does this belong? ───────────────────────── */}
+          {/* ── Step 3: Tags ────────────────────────────────────────────── */}
           {step === 3 && (
             <>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1 }}>
@@ -483,15 +441,14 @@ export default function CreateIdea() {
               <Typography variant="body1" color="text.secondary" sx={{ mb: 2.5 }}>
                 {t('create.q4.helper')}
               </Typography>
-              {catsLoading ? (
-                <CircularProgress size={24} />
-              ) : (
-                <CategorySelector
-                  categories={categories}
-                  value={form.categoryId}
-                  onChange={(id) => setForm((f) => ({ ...f, categoryId: id }))}
-                />
-              )}
+              <TagInput
+                value={form.tagIds}
+                onChange={(tagIds) => setForm((f) => ({ ...f, tagIds }))}
+                ideaTitle={form.need}
+                ideaDescription={form.why}
+                aiAvailable={hasOpenAI}
+                size="medium"
+              />
             </>
           )}
 
@@ -522,10 +479,12 @@ export default function CreateIdea() {
                   {form.how && (
                     <SummaryLine label={t('create.review.youImagine')} value={form.how} />
                   )}
-                  <SummaryLine
-                    label={t('create.review.category')}
-                    value={selectedCategory?.name ?? t('create.categoryNotSure')}
-                  />
+                  {form.tagIds.length > 0 && (
+                    <SummaryLine
+                      label={t('create.review.tags', 'Tags')}
+                      value={String(form.tagIds.length)}
+                    />
+                  )}
                 </Box>
               </Paper>
 
@@ -535,7 +494,8 @@ export default function CreateIdea() {
                 </Alert>
               )}
 
-              {/* AI Improve Button */}
+              {/* AI Improve Button — only when OpenAI is configured */}
+              {hasOpenAI && (
               <Button
                 variant="outlined"
                 startIcon={aiLoading ? <CircularProgress size={16} /> : <AIIcon />}
@@ -545,6 +505,7 @@ export default function CreateIdea() {
               >
                 {t('create.improveWithAI')}
               </Button>
+              )}
 
               {/* AI Suggestion Panel */}
               <Collapse in={!!aiSuggestion} unmountOnExit>

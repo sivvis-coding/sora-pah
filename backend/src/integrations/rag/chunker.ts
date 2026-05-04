@@ -120,6 +120,7 @@ export function chunkMarkdown(
     pageId: string;
     docTitle: string;
     pageTitle: string;
+    pageUrl: string;
   },
   options: {
     maxTokens?: number;
@@ -150,6 +151,7 @@ export function chunkMarkdown(
     pageId: meta.pageId,
     docTitle: meta.docTitle,
     pageTitle: meta.pageTitle,
+    pageUrl: meta.pageUrl,
     chunkIndex: i,
   }));
 }

@@ -19,9 +19,14 @@ export interface UserStory {
   requestedBy: string;
 }
 
+export interface KnowledgeSource {
+  title: string;
+  url: string;
+}
+
 export interface KnowledgeAnswer {
   answer: string;
-  sources: string[];
+  sources: KnowledgeSource[];
 }
 
 export interface ChatMessage {
@@ -48,11 +53,22 @@ export interface IdeaDraft {
   module: string;
 }
 
+export interface DocSuggestion {
+  title: string;
+  url: string;
+}
+
+export interface Guardrail {
+  type: 'bug' | 'documented';
+  docSuggestions: DocSuggestion[];
+}
+
 export interface ConverseResult {
   reply: string;
   ready: boolean;
   draft: IdeaDraft | null;
   responseId: string | null;
+  guardrail: Guardrail | null;
 }
 
 export const aiApi = {
@@ -131,10 +147,12 @@ export const aiApi = {
   converseIdea: async (
     message: string,
     previousResponseId: string | null,
+    images?: string[],
   ): Promise<ConverseResult> => {
     const res = await apiClient.post<ConverseResult>('/ai/converse', {
       message,
       previousResponseId,
+      ...(images && images.length > 0 ? { images } : {}),
     });
     return res.data;
   },

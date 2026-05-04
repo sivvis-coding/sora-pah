@@ -30,12 +30,12 @@ import {
   Person as StakeholderIcon,
   Menu as MenuIcon,
   VisibilityOff as ExitImpersonateIcon,
-  HelpOutline as HelpIcon,
   History as ActivityIcon,
   InfoOutlined as AboutIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useMode } from '../ModeContext';
+import { useSetup } from '../../features/setup/SetupProvider';
 import { mainNavItems, adminSectionItems, secondaryNavItems } from '../nav';
 import { APP_NAME, DRAWER_WIDTH, RAIL_WIDTH, AppMode } from '../constants';
 
@@ -46,6 +46,12 @@ export default function MainLayout() {
   const { mode, setMode, canSwitchMode } = useMode();
   const { t, i18n } = useTranslation('shared');
   const { t: tAuth } = useTranslation('auth');
+  const { status } = useSetup();
+  const hasClickup = !!status?.features?.clickup;
+
+  const visibleMainNavItems = mainNavItems.filter(
+    (item) => item.path !== '/progress' || hasClickup,
+  );
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
@@ -123,7 +129,7 @@ export default function MainLayout() {
 
       {/* Main nav items */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 0.75, width: '100%' }}>
-        {mainNavItems.map((item) => {
+        {visibleMainNavItems.map((item) => {
           const active = isActive(item.path);
           return (
             <Tooltip key={item.path} title={t(item.labelKey)} placement="right" arrow>
@@ -153,6 +159,10 @@ export default function MainLayout() {
                     lineHeight: 1,
                     textAlign: 'center',
                     userSelect: 'none',
+                    maxWidth: 60,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {t(item.labelKey)}
@@ -206,7 +216,7 @@ export default function MainLayout() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar />
       <List sx={{ flex: 1, px: 1 }}>
-        {mainNavItems.map((item) => (
+        {visibleMainNavItems.map((item) => (
           <ListItemButton
             key={item.path}
             selected={isActive(item.path)}
@@ -271,7 +281,7 @@ export default function MainLayout() {
           </>
         )}
 
-        {/* Secondary items (Help, My Activity) in mobile drawer */}
+        {/* Secondary items (My Activity, About) in mobile drawer */}
         <Divider sx={{ my: 1.5, mx: 1 }} />
         {secondaryNavItems.map((item) => (
           <ListItemButton
@@ -392,7 +402,7 @@ export default function MainLayout() {
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* ─── AppBar ─── */}
       <AppBar position="fixed" sx={{ zIndex: (th) => th.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: 1 }}>
@@ -468,20 +478,6 @@ export default function MainLayout() {
 
           {/* Language toggle — hidden on xs */}
           {!isXs && <Box sx={{ ml: 1 }}>{langToggle}</Box>}
-
-          {/* Help icon — desktop only (mobile has it in drawer) */}
-          {!isMobile && (
-            <Tooltip title={t('nav.help')}>
-              <IconButton
-                color="inherit"
-                onClick={() => navigate('/help')}
-                size="small"
-                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
-              >
-                <HelpIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
 
           {/* Avatar — opens dropdown menu */}
           {user && (
@@ -568,6 +564,10 @@ export default function MainLayout() {
         component="main"
         sx={{
           flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          overflow: 'auto',
           p: { xs: 2, sm: 3 },
           width: { xs: '100%', md: `calc(100% - ${RAIL_WIDTH}px)` },
         }}

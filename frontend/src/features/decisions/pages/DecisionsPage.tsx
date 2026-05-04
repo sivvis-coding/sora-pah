@@ -86,21 +86,21 @@ function IdeaRow({ idea }: { idea: Idea }) {
                   </Typography>
                 )}
 
-                {/* Category */}
-                {idea.category && (
+                {/* Tags */}
+                {(idea.tags ?? []).slice(0, 2).map((tag) => (
                   <Chip
-                    label={idea.category.name}
+                    key={tag.id}
+                    label={tag.name}
                     size="small"
                     variant="outlined"
                     sx={{
                       height: 18,
                       fontSize: '0.62rem',
-                      ...(idea.category.color
-                        ? { borderColor: idea.category.color, color: idea.category.color }
-                        : {}),
+                      borderColor: tag.color + '66',
+                      color: tag.color,
                     }}
                   />
-                )}
+                ))}
 
                 {/* Votes */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>

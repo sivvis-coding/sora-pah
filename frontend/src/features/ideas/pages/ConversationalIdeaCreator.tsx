@@ -25,18 +25,20 @@ import {
   AutoAwesome as AIIcon,
   CheckCircleOutline as CheckIcon,
   BugReport as BugIcon,
-  HelpOutline as HelpIcon,
   VisibilityOutlined as ViewIcon,
   ThumbUpAlt as VoteIcon,
   ArrowForward as ArrowIcon,
   LightbulbOutlined as IdeaIcon,
   Close as CloseIcon,
+  MenuBook as DocIcon,
+  EditOutlined as EditIcon,
+  DeleteOutline as DiscardIcon,
+  AttachFile as AttachIcon,
 } from '@mui/icons-material';
 import { ideasApi, type IdeasListResponse } from '../api/ideas.api';
-import { aiApi, type IdeaImprovement, type SimilarIdea } from '../api/ai.api';
-import { categoriesApi, type Category } from '../../categories/api/categories.api';
-import { classifyIntent } from '../utils/classify-intent';
-import { EXTERNAL_LINKS } from '../../../shared/constants';
+import { aiApi, type IdeaImprovement, type SimilarIdea, type Guardrail } from '../api/ai.api';
+import { useSetup, useAppLinks } from '../../setup/SetupProvider';
+import TagInput from '../../tags/components/TagInput';
 import IdeaCreated from './IdeaCreated';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,17 +49,18 @@ interface ConvoMessage {
   id: string;
   from: 'ai' | 'user';
   text: string;
+  images?: string[];
 }
 
 interface Draft {
   need: string;
   why: string;
   how: string;
-  categoryId: string;
+  tagIds: string[];
   module: string;
 }
 
-const EMPTY_DRAFT: Draft = { need: '', why: '', how: '', categoryId: '', module: '' };
+const EMPTY_DRAFT: Draft = { need: '', why: '', how: '', tagIds: [], module: '' };
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -67,6 +70,25 @@ function uid() {
 
 function aiMsg(text: string): ConvoMessage {
   return { id: uid(), from: 'ai', text };
+}
+
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_IMAGES = 5;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB per image
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function filterImageFiles(files: FileList | File[]): File[] {
+  return Array.from(files).filter(
+    (f) => ACCEPTED_IMAGE_TYPES.includes(f.type) && f.size <= MAX_IMAGE_BYTES,
+  );
 }
 
 // ─── ChatBubble ───────────────────────────────────────────────────────────────
@@ -113,9 +135,31 @@ function ChatBubble({ msg }: { msg: ConvoMessage }) {
             color: isAi ? 'text.primary' : 'primary.contrastText',
           }}
         >
-          <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-            {msg.text}
-          </Typography>
+          {msg.images && msg.images.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: msg.text ? 1 : 0 }}>
+              {msg.images.map((src, i) => (
+                <Box
+                  key={i}
+                  component="img"
+                  src={src}
+                  alt=""
+                  sx={{
+                    maxWidth: 180,
+                    maxHeight: 140,
+                    borderRadius: 1.5,
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => window.open(src, '_blank')}
+                />
+              ))}
+            </Box>
+          )}
+          {msg.text && (
+            <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+              {msg.text}
+            </Typography>
+          )}
         </Paper>
       </Box>
     </Fade>
@@ -186,14 +230,12 @@ interface PreviewField {
 function PreviewPanel({
   draft,
   aiSuggestion,
-  categories,
   onAcceptSuggestion,
   onDismissSuggestion,
   hasSuggestion,
 }: {
   draft: Draft;
   aiSuggestion: IdeaImprovement | null;
-  categories: Category[];
   onAcceptSuggestion: () => void;
   onDismissSuggestion: () => void;
   hasSuggestion: boolean;
@@ -201,14 +243,12 @@ function PreviewPanel({
   const { t } = useTranslation('ideas');
   const hasContent = draft.need.trim().length > 0;
 
-  const selectedCat = categories.find((c) => c.id === draft.categoryId);
-
   const fields: PreviewField[] = [
     { label: t('convo.previewField.need'), value: draft.need, isEmpty: !draft.need },
     ...(draft.module ? [{ label: t('convo.previewField.module'), value: draft.module }] : []),
     { label: t('convo.previewField.why'), value: draft.why, isEmpty: !draft.why },
     ...(draft.how ? [{ label: t('convo.previewField.how'), value: draft.how }] : []),
-    ...(selectedCat ? [{ label: t('convo.previewField.category'), value: selectedCat.name }] : []),
+    ...(draft.tagIds.length > 0 ? [{ label: t('convo.previewField.tags', 'Tags'), value: String(draft.tagIds.length) }] : []),
   ];
 
   return (
@@ -404,53 +444,6 @@ function SimilarAlert({
 
 // ─── Category picker ──────────────────────────────────────────────────────────
 
-function CategoryPicker({
-  categories,
-  value,
-  onChange,
-}: {
-  categories: Category[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  const { t } = useTranslation('ideas');
-
-  return (
-    <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        {t('convo.categoryLabel')}
-      </Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        <Chip
-          label={t('convo.categorySkip')}
-          variant={value === '' ? 'filled' : 'outlined'}
-          color={value === '' ? 'primary' : 'default'}
-          onClick={() => onChange('')}
-          sx={{ height: 36 }}
-        />
-        {categories.map((cat) => (
-          <Chip
-            key={cat.id}
-            label={cat.name}
-            variant={value === cat.id ? 'filled' : 'outlined'}
-            color={value === cat.id ? 'primary' : 'default'}
-            onClick={() => onChange(cat.id)}
-            sx={{
-              height: 36,
-              ...(cat.color && value !== cat.id
-                ? { borderColor: cat.color, color: cat.color }
-                : {}),
-              ...(cat.color && value === cat.id
-                ? { bgcolor: cat.color, '&:hover': { bgcolor: cat.color } }
-                : {}),
-            }}
-          />
-        ))}
-      </Box>
-    </Box>
-  );
-}
-
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function ConversationalIdeaCreator() {
@@ -460,6 +453,9 @@ export default function ConversationalIdeaCreator() {
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { status } = useSetup();
+  const hasOpenAI = !!status?.features?.openai;
+  const appLinks = useAppLinks();
 
   // ─── State ─────────────────────────────────────────────────────────────────
 
@@ -477,18 +473,15 @@ export default function ConversationalIdeaCreator() {
   const [isImproving, setIsImproving] = useState(false);
   const [similarIdeas, setSimilarIdeas] = useState<SimilarIdea[]>([]);
   const [showSimilar, setShowSimilar] = useState(false);
-  const [detectedIntent, setDetectedIntent] = useState<'bug' | 'help' | null>(null);
+  const [guardrail, setGuardrail] = useState<Guardrail | null>(null);
   const [createdIdea, setCreatedIdea] = useState<{ id: string; title: string } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
 
   // ─── Data ──────────────────────────────────────────────────────────────────
-
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['categories'],
-    queryFn: categoriesApi.listActive,
-  });
 
   const { data: ideasData } = useQuery<IdeasListResponse>({
     queryKey: ['ideas'],
@@ -502,15 +495,8 @@ export default function ConversationalIdeaCreator() {
   }, [messages, isAiThinking]);
 
   // ─── Intent detection on first input ──────────────────────────────────────
-
-  useEffect(() => {
-    if (phase !== 'chat' || inputValue.length < 20) {
-      setDetectedIntent(null);
-      return;
-    }
-    const intent = classifyIntent(inputValue);
-    setDetectedIntent(intent === 'idea' ? null : intent);
-  }, [inputValue, phase]);
+  // Intentionally removed: classification now happens in handleSend after the
+  // user's FIRST message, not while typing. See handleSend below.
 
   // ─── Submit mutation ───────────────────────────────────────────────────────
 
@@ -525,7 +511,7 @@ export default function ConversationalIdeaCreator() {
         problem: draft.why || draft.need,
         value: draft.why || draft.need,
         solutionIdea: draft.how || undefined,
-        categoryId: draft.categoryId || undefined,
+        tagIds: draft.tagIds.length > 0 ? draft.tagIds : undefined,
       });
     },
     onSuccess: (idea) => {
@@ -550,19 +536,27 @@ export default function ConversationalIdeaCreator() {
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || isAiThinking) return;
+    const images = pendingImages.length > 0 ? [...pendingImages] : undefined;
+    if (!text && !images) return;
+    if (isAiThinking) return;
 
     setInputValue('');
-    const userMessage: ConvoMessage = { id: uid(), from: 'user', text };
+    setPendingImages([]);
+    const userMessage: ConvoMessage = { id: uid(), from: 'user', text, images };
     setMessages((prev) => [...prev, userMessage]);
 
     setIsAiThinking(true);
     try {
-      const result = await aiApi.converseIdea(text, previousResponseId);
+      const result = await aiApi.converseIdea(text || '(ver imágenes adjuntas)', previousResponseId, images);
 
       setIsAiThinking(false);
       setMessages((prev) => [...prev, aiMsg(result.reply)]);
       setPreviousResponseId(result.responseId);
+
+      // AI-driven guardrail (only set once, don't overwrite if user dismissed)
+      if (result.guardrail && !guardrail) {
+        setGuardrail(result.guardrail);
+      }
 
       if (result.ready && result.draft) {
         setDraft((d) => ({
@@ -583,7 +577,51 @@ export default function ConversationalIdeaCreator() {
     }
 
     setTimeout(() => inputRef.current?.focus(), 50);
-  }, [inputValue, isAiThinking, previousResponseId, t]);
+  }, [inputValue, pendingImages, isAiThinking, previousResponseId, guardrail, t]);
+
+  // ─── Image handling ────────────────────────────────────────────────────────
+
+  const addImages = useCallback(async (files: File[]) => {
+    const valid = filterImageFiles(files);
+    if (valid.length === 0) return;
+    const remaining = MAX_IMAGES - pendingImages.length;
+    const toProcess = valid.slice(0, remaining);
+    const dataUrls = await Promise.all(toProcess.map(readFileAsDataUrl));
+    setPendingImages((prev) => [...prev, ...dataUrls]);
+  }, [pendingImages.length]);
+
+  const removeImage = useCallback((index: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        addImages(imageFiles);
+      }
+    },
+    [addImages],
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        addImages(Array.from(e.target.files));
+        e.target.value = ''; // reset so same file can be re-selected
+      }
+    },
+    [addImages],
+  );
 
   // ─── AI improvement ────────────────────────────────────────────────────────
 
@@ -642,40 +680,75 @@ export default function ConversationalIdeaCreator() {
     return <IdeaCreated ideaId={createdIdea.id} ideaTitle={createdIdea.title} />;
   }
 
-  // ─── Intent banner (shown in input phase) ─────────────────────────────────
+  // ─── Guardrail banner (AI-driven, single unified banner) ────────────────────
 
-  const intentBanner = detectedIntent && phase === 'chat' && (
+  const guardrailBanner = guardrail && phase === 'chat' && (
     <Collapse in unmountOnExit>
       <Alert
-        severity={detectedIntent === 'bug' ? 'warning' : 'info'}
-        icon={detectedIntent === 'bug' ? <BugIcon /> : <HelpIcon />}
+        severity={guardrail.type === 'bug' ? 'warning' : 'info'}
+        icon={guardrail.type === 'bug' ? <BugIcon /> : <DocIcon />}
         sx={{ borderRadius: 2, mb: 1.5, '& .MuiAlert-message': { width: '100%' } }}
       >
         <AlertTitle sx={{ fontWeight: 700 }}>
-          {t(`convo.intent.${detectedIntent}.message`)}
+          {guardrail.type === 'bug'
+            ? t('convo.intent.bug.message')
+            : t('convo.docSuggestion.title')}
         </AlertTitle>
         <Typography variant="body2" sx={{ mb: 1.5 }}>
-          {t(`convo.intent.${detectedIntent}.subtext`)}
+          {guardrail.type === 'bug'
+            ? t('convo.intent.bug.subtext')
+            : t('convo.docSuggestion.subtext')}
         </Typography>
+
+        {/* Doc links (only for documented guardrail) */}
+        {guardrail.type === 'documented' && guardrail.docSuggestions.length > 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
+            {guardrail.docSuggestions.map((doc, i) => (
+              <Button
+                key={i}
+                size="small"
+                variant="outlined"
+                color="info"
+                href={doc.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                startIcon={<DocIcon sx={{ fontSize: '0.9rem !important' }} />}
+                sx={{ textTransform: 'none', fontWeight: 600, justifyContent: 'flex-start', borderRadius: 1.5, fontSize: '0.8rem' }}
+              >
+                {doc.title}
+              </Button>
+            ))}
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            size="small"
-            variant="contained"
-            color={detectedIntent === 'bug' ? 'warning' : 'info'}
-            href={detectedIntent === 'bug' ? EXTERNAL_LINKS.FRESHSERVICE : EXTERNAL_LINKS.HELP}
-            {...(detectedIntent === 'bug' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-            sx={{ color: 'white', textTransform: 'none', fontWeight: 700 }}
-          >
-            {t(`convo.intent.${detectedIntent}.primary`)}
-          </Button>
+          {/* Primary action */}
+          {guardrail.type === 'bug' && (
+            <Button
+              size="small"
+              variant="contained"
+              color="warning"
+              href={appLinks.freshservice}
+              target="_blank"
+              rel="noopener noreferrer"
+              disabled={!appLinks.freshservice}
+              sx={{ color: 'white', textTransform: 'none', fontWeight: 700 }}
+            >
+              {t('convo.intent.bug.primary')}
+            </Button>
+          )}
+
+          {/* Dismiss */}
           <Button
             size="small"
             variant="text"
             color="inherit"
-            onClick={() => setDetectedIntent(null)}
+            onClick={() => setGuardrail(null)}
             sx={{ opacity: 0.7, textTransform: 'none' }}
           >
-            {t(`convo.intent.${detectedIntent}.secondary`)}
+            {guardrail.type === 'bug'
+              ? t('convo.intent.bug.secondary')
+              : t('convo.docSuggestion.dismiss')}
           </Button>
         </Box>
       </Alert>
@@ -685,19 +758,21 @@ export default function ConversationalIdeaCreator() {
   // ─── Input area (shown in input/why/how phases) ────────────────────────────
 
   const isInputPhase = phase !== 'review';
-  const canSend = inputValue.trim().length > 5;
+  const canSend = inputValue.trim().length > 0 || pendingImages.length > 0;
 
   // ─── Review controls ───────────────────────────────────────────────────────
 
   const reviewControls = phase === 'review' && (
     <Fade in timeout={400}>
       <Box>
-        {/* Category picker */}
+        {/* Tag picker */}
         <Box sx={{ mb: 2.5 }}>
-          <CategoryPicker
-            categories={categories}
-            value={draft.categoryId}
-            onChange={(id) => setDraft((d) => ({ ...d, categoryId: id }))}
+          <TagInput
+            value={draft.tagIds}
+            onChange={(tagIds) => setDraft((d) => ({ ...d, tagIds }))}
+            ideaTitle={draft.need}
+            ideaDescription={draft.why}
+            aiAvailable={hasOpenAI}
           />
         </Box>
 
@@ -767,6 +842,30 @@ export default function ConversationalIdeaCreator() {
           </Button>
         </Box>
 
+        {/* Secondary actions */}
+        <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+          <Button
+            size="small"
+            variant="text"
+            startIcon={<EditIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={() => setPhase('chat')}
+            sx={{ textTransform: 'none', fontWeight: 600, opacity: 0.7 }}
+          >
+            {t('convo.keepRefining')}
+          </Button>
+
+          <Button
+            size="small"
+            variant="text"
+            color="error"
+            startIcon={<DiscardIcon sx={{ fontSize: '1rem !important' }} />}
+            onClick={() => navigate('/ideas')}
+            sx={{ textTransform: 'none', fontWeight: 600, opacity: 0.7 }}
+          >
+            {t('convo.discard')}
+          </Button>
+        </Box>
+
         {submitMutation.isError && (
           <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
             {tShared('common.error')}
@@ -802,6 +901,14 @@ export default function ConversationalIdeaCreator() {
         <Typography variant="body2" color="text.secondary">
           {t('convo.pageSubtitle')}
         </Typography>
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => navigate('/ideas/new?mode=manual')}
+          sx={{ textTransform: 'none', fontWeight: 600, mt: 0.5, p: 0, minWidth: 0, fontSize: '0.8rem' }}
+        >
+          {t('convo.switchToManual')}
+        </Button>
       </Box>
 
       {/* Progress */}
@@ -851,12 +958,51 @@ export default function ConversationalIdeaCreator() {
             <div ref={chatEndRef} />
           </Box>
 
-          {/* Intent banner */}
-          {intentBanner}
+          {/* AI guardrail banner */}
+          {guardrailBanner}
 
           {/* Input */}
           {isInputPhase && (
             <Box>
+              {/* Pending image thumbnails */}
+              {pendingImages.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+                  {pendingImages.map((src, i) => (
+                    <Box key={i} sx={{ position: 'relative', display: 'inline-block' }}>
+                      <Box
+                        component="img"
+                        src={src}
+                        alt=""
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 1.5,
+                          objectFit: 'cover',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => removeImage(i)}
+                        sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          width: 20,
+                          height: 20,
+                          bgcolor: 'error.main',
+                          color: 'white',
+                          '&:hover': { bgcolor: 'error.dark' },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
               <Box
                 sx={{
                   display: 'flex',
@@ -873,6 +1019,7 @@ export default function ConversationalIdeaCreator() {
                   placeholder={t('convo.inputPlaceholder')}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  onPaste={handlePaste}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && canSend) {
                       e.preventDefault();
@@ -889,6 +1036,19 @@ export default function ConversationalIdeaCreator() {
                   }}
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <IconButton
+                    color="default"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isAiThinking || pendingImages.length >= MAX_IMAGES}
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 2,
+                    }}
+                    title={t('convo.attachImage', 'Adjuntar imagen')}
+                  >
+                    <AttachIcon sx={{ fontSize: 20 }} />
+                  </IconButton>
                   <IconButton
                     color="primary"
                     onClick={handleSend}
@@ -908,6 +1068,16 @@ export default function ConversationalIdeaCreator() {
                   </IconButton>
                 </Box>
               </Box>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleFileSelect}
+              />
 
               <Typography
                 variant="caption"
@@ -944,7 +1114,6 @@ export default function ConversationalIdeaCreator() {
             <PreviewPanel
               draft={draft}
               aiSuggestion={aiSuggestion}
-              categories={categories}
               onAcceptSuggestion={handleAcceptSuggestion}
               onDismissSuggestion={() => setShowSuggestion(false)}
               hasSuggestion={showSuggestion}

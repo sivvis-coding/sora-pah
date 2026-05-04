@@ -22,20 +22,22 @@ import landingEn from '../../features/landing/i18n/en.json';
 import landingEs from '../../features/landing/i18n/es.json';
 import ideasEn from '../../features/ideas/i18n/en.json';
 import ideasEs from '../../features/ideas/i18n/es.json';
-import categoriesEn from '../../features/categories/i18n/en.json';
-import categoriesEs from '../../features/categories/i18n/es.json';
 import decisionsEn from '../../features/decisions/i18n/en.json';
 import decisionsEs from '../../features/decisions/i18n/es.json';
-import helpEn from '../../features/help/i18n/en.json';
-import helpEs from '../../features/help/i18n/es.json';
 import myActivityEn from '../../features/my-activity/i18n/en.json';
 import myActivityEs from '../../features/my-activity/i18n/es.json';
-import adminEn from '../../features/admin/i18n/en.json';
-import adminEs from '../../features/admin/i18n/es.json';
 import aboutEn from '../../features/about/i18n/en.json';
 import aboutEs from '../../features/about/i18n/es.json';
 import progressBoardEn from '../../features/progress-board/i18n/en.json';
 import progressBoardEs from '../../features/progress-board/i18n/es.json';
+import setupEn from '../../features/setup/i18n/en.json';
+import setupEs from '../../features/setup/i18n/es.json';
+import adminEn from '../../features/admin/i18n/en.json';
+import adminEs from '../../features/admin/i18n/es.json';
+import docsEn from '../../features/docs/i18n/en.json';
+import docsEs from '../../features/docs/i18n/es.json';
+import learnEn from '../../features/learn/i18n/en.json';
+import learnEs from '../../features/learn/i18n/es.json';
 
 i18n
   .use(LanguageDetector)
@@ -44,7 +46,8 @@ i18n
     defaultNS: 'shared',
     ns: [
       'shared', 'auth', 'products', 'narratives', 'users', 'stakeholderHome', 'landing',
-      'ideas', 'categories', 'decisions', 'help', 'myActivity', 'admin', 'about', 'progressBoard',
+      'ideas', 'decisions', 'myActivity', 'about', 'progressBoard',
+      'setup', 'admin', 'docs', 'learn',
     ],
     resources: {
       en: {
@@ -56,13 +59,14 @@ i18n
         stakeholderHome: stakeholderHomeEn,
         landing: landingEn,
         ideas: ideasEn,
-        categories: categoriesEn,
         decisions: decisionsEn,
-        help: helpEn,
         myActivity: myActivityEn,
-        admin: adminEn,
         about: aboutEn,
         progressBoard: progressBoardEn,
+        setup: setupEn,
+        admin: adminEn,
+        docs: docsEn,
+        learn: learnEn,
       },
       es: {
         shared: sharedEs,
@@ -73,13 +77,14 @@ i18n
         stakeholderHome: stakeholderHomeEs,
         landing: landingEs,
         ideas: ideasEs,
-        categories: categoriesEs,
         decisions: decisionsEs,
-        help: helpEs,
         myActivity: myActivityEs,
-        admin: adminEs,
         about: aboutEs,
         progressBoard: progressBoardEs,
+        setup: setupEs,
+        admin: adminEs,
+        docs: docsEs,
+        learn: learnEs,
       },
     },
     fallbackLng: 'en',

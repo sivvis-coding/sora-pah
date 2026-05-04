@@ -1,16 +1,11 @@
 import apiClient from '../../../shared/api/client';
+import { Tag } from '../../tags/api/tags.api';
 
 export interface IdeaAuthor {
   name: string;
   department: string | null;
   jobTitle: string | null;
   photoBase64: string | null;
-}
-
-export interface IdeaCategory {
-  id: string;
-  name: string;
-  color: string | null;
 }
 
 export interface IdeaUserStory {
@@ -32,7 +27,7 @@ export interface Idea {
   value: string;
   solutionIdea: string | null;
   productId: string | null;
-  categoryId: string | null;
+  tagIds: string[];
   createdBy: string;
   status: 'open' | 'backlog' | 'implemented' | 'discarded';
   discardReason: string | null;
@@ -42,7 +37,7 @@ export interface Idea {
   commentCount: number;
   createdAt: string;
   author: IdeaAuthor | null;
-  category: IdeaCategory | null;
+  tags: Tag[];
 }
 
 export interface Vote {
@@ -89,9 +84,12 @@ export const ideasApi = {
     value: string;
     solutionIdea?: string;
     productId?: string;
-    categoryId?: string;
+    tagIds?: string[];
   }): Promise<Idea> =>
     apiClient.post('/ideas', data).then((r) => r.data),
+
+  updateTags: (id: string, tagIds: string[]): Promise<Idea> =>
+    apiClient.patch(`/ideas/${id}/tags`, { tagIds }).then((r) => r.data),
 
   updateStatus: (id: string, status: Idea['status'], discardReason?: string): Promise<Idea> =>
     apiClient.patch(`/ideas/${id}/status`, { status, discardReason }).then((r) => r.data),
@@ -119,6 +117,10 @@ export const ideasApi = {
     apiClient.delete(`/ideas/${ideaId}/comments/${commentId}`).then((r) => r.data),
 
   // Share
-  share: (ideaId: string, recipientEmails: string[], message?: string): Promise<{ shared: boolean; recipientCount: number }> =>
+  share: (
+    ideaId: string,
+    recipientEmails: string[],
+    message?: string,
+  ): Promise<{ shared: boolean; recipientCount: number }> =>
     apiClient.post(`/ideas/${ideaId}/share`, { recipientEmails, message }).then((r) => r.data),
 };

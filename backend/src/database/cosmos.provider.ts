@@ -52,12 +52,24 @@ export const cosmosDatabaseProvider = {
         partitionKey: { paths: ['/ideaId'] },
       }),
       database.containers.createIfNotExists({
-        id: 'categories',
+        id: 'tags',
         partitionKey: { paths: ['/id'] },
       }),
       database.containers.createIfNotExists({
         id: 'comments',
         partitionKey: { paths: ['/ideaId'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'questions',
+        partitionKey: { paths: ['/id'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'training-sessions',
+        partitionKey: { paths: ['/id'] },
+      }),
+      database.containers.createIfNotExists({
+        id: 'doc-requests',
+        partitionKey: { paths: ['/id'] },
       }),
       // NOTE: the "embeddings" container (RAG / vector search) is created
       // on-demand by RagService.ensureContainer() when an admin triggers

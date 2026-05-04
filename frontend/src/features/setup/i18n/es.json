@@ -1,0 +1,153 @@
+{
+  "wizard": {
+    "title": "Bienvenido a SORA",
+    "subtitle": "Configuremos tu instancia. Solo toma un minuto.",
+    "steps": {
+      "account": "Cuenta Admin",
+      "azureAd": "Azure AD (SSO)",
+      "integrations": "Integraciones",
+      "done": "¡Listo!"
+    },
+    "account": {
+      "title": "Crea tu cuenta de administrador",
+      "subtitle": "Este será el administrador inicial. Puedes configurar Azure AD en el siguiente paso.",
+      "name": "Nombre completo",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "passwordConfirm": "Confirmar contraseña",
+      "passwordHint": "Mínimo 8 caracteres",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "submit": "Crear Cuenta",
+      "creating": "Creando…"
+    },
+    "azureAd": {
+      "title": "Azure AD Single Sign-On",
+      "subtitle": "Conecta Azure AD para que tu equipo inicie sesión con sus cuentas corporativas. Puedes omitir esto y configurarlo después.",
+      "tenantId": "Tenant ID",
+      "clientId": "Client ID (Application ID)",
+      "clientSecret": "Client Secret",
+      "tenantHint": "Se encuentra en Azure Portal → App Registrations → Overview",
+      "skip": "Omitir por ahora",
+      "save": "Guardar y Continuar",
+      "saving": "Guardando…"
+    },
+    "integrations": {
+      "title": "Integraciones Opcionales",
+      "subtitle": "Activa las integraciones que necesites. Todas se pueden configurar después desde Admin → Integraciones.",
+      "skip": "Omitir todas",
+      "save": "Guardar y Continuar",
+      "saving": "Guardando…",
+      "openai": {
+        "title": "OpenAI",
+        "description": "Mejora de ideas con IA, generación de user stories y asistente de conocimiento.",
+        "apiKey": "API Key",
+        "model": "Modelo",
+        "modelHint": "ej. gpt-4o"
+      },
+      "clickup": {
+        "title": "ClickUp",
+        "description": "Sincroniza user stories como tareas en ClickUp e indexa docs para la base de conocimiento.",
+        "apiKey": "API Key",
+        "teamId": "Team ID",
+        "listId": "List ID (Sprint Backlog)",
+        "productBacklogListId": "Product Backlog List ID",
+        "docsFolderId": "Docs Folder ID"
+      },
+      "teams": {
+        "title": "Notificaciones de Teams",
+        "description": "Envía notificaciones vía webhook de Power Automate cuando las ideas cambian de estado o se comparten.",
+        "webhookUrl": "URL del Webhook"
+      }
+    },
+    "done": {
+      "title": "¡Todo listo!",
+      "subtitle": "SORA está configurado. Puedes gestionar las integraciones en cualquier momento desde Admin → Integraciones.",
+      "enter": "Entrar a SORA"
+    }
+  },
+  "integrations": {
+    "title": "Integraciones",
+    "subtitle": "Gestiona las conexiones con servicios externos. Los cambios se aplican inmediatamente.",
+    "status": {
+      "active": "Activa",
+      "inactive": "Sin configurar"
+    },
+    "edit": "Editar",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "saved": "Configuración guardada correctamente.",
+    "error": "Error al guardar la configuración.",
+    "azureAd": {
+      "title": "Azure AD (SSO)",
+      "description": "Inicio de sesión corporativo vía Microsoft Entra ID."
+    },
+    "openai": {
+      "title": "OpenAI",
+      "description": "Funciones con IA: mejora de ideas, generación de user stories, asistente de conocimiento."
+    },
+    "clickup": {
+      "title": "ClickUp",
+      "description": "Integración de gestión de tareas para user stories e indexación de base de conocimiento.",
+      "tabDisabledHint": "Configura las credenciales de conexión primero",
+      "tabs": {
+        "connection": "Conexión",
+        "lists": "Listas",
+        "mappings": "Mapeos",
+        "knowledge": "Base de Conocimiento"
+      },
+      "connection": {
+        "empty": "Aún no hay credenciales configuradas. Haz clic en Configurar para empezar.",
+        "configure": "Configurar",
+        "apiKeyHint": "Tu token personal de API de ClickUp",
+        "teamIdHint": "Se encuentra en la URL del workspace de ClickUp (Ajustes → Workspaces)",
+        "currentlySaved": "Actualmente guardado"
+      },
+      "lists": {
+        "empty": "Aún no hay listas configuradas.",
+        "configure": "Configurar listas",
+        "sprintLabel": "Sprint Backlog",
+        "sprintHint": "Donde se crearán las tareas de user story",
+        "backlogLabel": "Product Backlog",
+        "backlogHint": "Destino de las user stories generadas desde el workspace"
+      },
+      "mappings": {
+        "subtitle": "Mapea los estados y campos de ClickUp a las columnas del Progress Board de SORA."
+      },
+      "knowledge": {
+        "subtitle": "Selecciona los Docs de ClickUp a indexar para el Asistente de Conocimiento (RAG)."
+      }
+    },
+    "teams": {
+      "title": "Notificaciones de Teams",
+      "description": "Notificaciones push vía webhook de Power Automate."
+    },
+    "appLinks": {
+      "title": "Enlaces de la App",
+      "description": "Configura las URLs externas usadas en la aplicación (Freshservice, Ayuda, etc.)."
+    },
+    "factoryReset": {
+      "title": "Restablecimiento de Fábrica",
+      "description": "Elimina permanentemente TODOS los datos incluyendo usuarios, ideas, configuraciones e integraciones. Esta acción no se puede deshacer.",
+      "button": "Restablecer",
+      "confirm": "Escribe RESET para confirmar",
+      "confirmPlaceholder": "Escribe RESET",
+      "confirmError": "Escribe RESET para confirmar",
+      "resetting": "Restableciendo…",
+      "success": "Restablecimiento completo. Redirigiendo a la configuración…"
+    }
+  },
+  "localLogin": {
+    "title": "Inicio de Sesión Admin",
+    "subtitle": "Inicia sesión con tu cuenta de administrador local.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Iniciar Sesión",
+    "signingIn": "Iniciando sesión…",
+    "error": "Correo o contraseña incorrectos.",
+    "azureAdAvailable": "Iniciar sesión con Azure AD",
+    "or": "o"
+  }
+}

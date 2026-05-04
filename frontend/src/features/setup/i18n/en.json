@@ -1,0 +1,153 @@
+{
+  "wizard": {
+    "title": "Welcome to SORA",
+    "subtitle": "Let's set up your instance. This only takes a minute.",
+    "steps": {
+      "account": "Admin Account",
+      "azureAd": "Azure AD (SSO)",
+      "integrations": "Integrations",
+      "done": "Ready!"
+    },
+    "account": {
+      "title": "Create your admin account",
+      "subtitle": "This will be the initial administrator. You can configure Azure AD single sign-on in the next step.",
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "passwordConfirm": "Confirm password",
+      "passwordHint": "At least 8 characters",
+      "passwordMismatch": "Passwords don't match",
+      "submit": "Create Account",
+      "creating": "Creating…"
+    },
+    "azureAd": {
+      "title": "Azure AD Single Sign-On",
+      "subtitle": "Connect Azure AD so your team can sign in with their corporate accounts. You can skip this and configure it later.",
+      "tenantId": "Tenant ID",
+      "clientId": "Client ID (Application ID)",
+      "clientSecret": "Client Secret",
+      "tenantHint": "Found in Azure Portal → App Registrations → Overview",
+      "skip": "Skip for now",
+      "save": "Save & Continue",
+      "saving": "Saving…"
+    },
+    "integrations": {
+      "title": "Optional Integrations",
+      "subtitle": "Enable the integrations you need. All can be configured later from Admin → Integrations.",
+      "skip": "Skip all",
+      "save": "Save & Continue",
+      "saving": "Saving…",
+      "openai": {
+        "title": "OpenAI",
+        "description": "AI-powered idea improvement, user story generation, and knowledge assistant.",
+        "apiKey": "API Key",
+        "model": "Model",
+        "modelHint": "e.g. gpt-4o"
+      },
+      "clickup": {
+        "title": "ClickUp",
+        "description": "Sync user stories to ClickUp tasks and index docs for the knowledge base.",
+        "apiKey": "API Key",
+        "teamId": "Team ID",
+        "listId": "List ID (Sprint Backlog)",
+        "productBacklogListId": "Product Backlog List ID",
+        "docsFolderId": "Docs Folder ID"
+      },
+      "teams": {
+        "title": "Teams Notifications",
+        "description": "Send notifications via Power Automate webhook when ideas change status or are shared.",
+        "webhookUrl": "Webhook URL"
+      }
+    },
+    "done": {
+      "title": "You're all set!",
+      "subtitle": "SORA is ready. You can manage integrations anytime from Admin → Integrations.",
+      "enter": "Enter SORA"
+    }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Manage external service connections. Changes take effect immediately.",
+    "status": {
+      "active": "Active",
+      "inactive": "Not configured"
+    },
+    "edit": "Edit",
+    "disable": "Disable",
+    "enable": "Enable",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "saved": "Settings saved successfully.",
+    "error": "Failed to save settings.",
+    "azureAd": {
+      "title": "Azure AD (SSO)",
+      "description": "Corporate single sign-on via Microsoft Entra ID."
+    },
+    "openai": {
+      "title": "OpenAI",
+      "description": "AI-powered features: idea improvement, user story generation, knowledge assistant."
+    },
+    "clickup": {
+      "title": "ClickUp",
+      "description": "Task management integration for user stories and knowledge base indexing.",
+      "tabDisabledHint": "Configure connection credentials first",
+      "tabs": {
+        "connection": "Connection",
+        "lists": "Lists",
+        "mappings": "Mappings",
+        "knowledge": "Knowledge Base"
+      },
+      "connection": {
+        "empty": "No credentials configured yet. Click Configure to get started.",
+        "configure": "Configure",
+        "apiKeyHint": "Your ClickUp personal API token",
+        "teamIdHint": "Found in ClickUp workspace URL (Settings → Workspaces)",
+        "currentlySaved": "Currently saved"
+      },
+      "lists": {
+        "empty": "No lists configured yet.",
+        "configure": "Configure lists",
+        "sprintLabel": "Sprint Backlog",
+        "sprintHint": "Where user story tasks will be created",
+        "backlogLabel": "Product Backlog",
+        "backlogHint": "Destination for workspace-generated user stories"
+      },
+      "mappings": {
+        "subtitle": "Map ClickUp statuses and fields to the SORA Progress Board columns."
+      },
+      "knowledge": {
+        "subtitle": "Select ClickUp Docs to index for the Knowledge Assistant (RAG)."
+      }
+    },
+    "teams": {
+      "title": "Teams Notifications",
+      "description": "Push notifications via Power Automate webhook."
+    },
+    "appLinks": {
+      "title": "App Links",
+      "description": "Configure external URLs used across the application (Freshservice, Help, etc.)."
+    },
+    "factoryReset": {
+      "title": "Factory Reset",
+      "description": "Permanently delete ALL data including users, ideas, settings, and integrations. This cannot be undone.",
+      "button": "Factory Reset",
+      "confirm": "Type RESET to confirm",
+      "confirmPlaceholder": "Type RESET",
+      "confirmError": "Type RESET to confirm",
+      "resetting": "Resetting…",
+      "success": "Factory reset complete. Redirecting to setup…"
+    }
+  },
+  "localLogin": {
+    "title": "Admin Login",
+    "subtitle": "Sign in with your local admin account.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "signingIn": "Signing in…",
+    "error": "Invalid email or password.",
+    "azureAdAvailable": "Sign in with Azure AD",
+    "or": "or"
+  }
+}

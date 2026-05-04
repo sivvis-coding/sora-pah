@@ -1,10 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { json } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Allow larger payloads for base64 image uploads (default 100KB is too small)
+  app.use(json({ limit: '20mb' }));
   const logger = new Logger('Bootstrap');
 
   app.setGlobalPrefix('api');

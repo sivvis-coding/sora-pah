@@ -35,6 +35,7 @@
   },
   "create": {
     "fab": "Compartir una idea",
+    "switchToAssistant": "¿Quieres ayuda para darle forma? Usa el asistente",
     "optional": "Opcional",
     "continue": "Continuar",
     "skip": "Omitir",
@@ -106,6 +107,9 @@
     "sendButton": "Enviar",
     "continueButton": "Continuar",
     "submitButton": "Compartir idea",
+    "keepRefining": "Seguir refinando",
+    "discard": "Descartar",
+    "switchToManual": "¿Prefieres escribirla tú?",
     "editingLabel": "Editando",
     "previewTitle": "Tu idea",
     "previewEmpty": "Tu idea tomará forma aquí mientras escribes.",
@@ -145,6 +149,12 @@
         "primary": "Ir a Ayuda",
         "secondary": "Continuar como idea"
       }
+    },
+    "docSuggestion": {
+      "title": "Esto podría estar documentado",
+      "subtext": "Encontramos páginas relacionadas en la documentación del producto. Échalas un vistazo antes de continuar — puede que tu respuesta ya esté ahí.",
+      "viewDoc": "Ver documentación",
+      "dismiss": "Continuar con mi idea"
     },
     "prompts": {
       "q1": "¿Qué necesitas o qué te está frustrando?",

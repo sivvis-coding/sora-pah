@@ -35,6 +35,7 @@
   },
   "create": {
     "fab": "Share an idea",
+    "switchToAssistant": "Want help shaping your idea? Use the assistant",
     "optional": "Optional",
     "continue": "Continue",
     "skip": "Skip",
@@ -106,6 +107,9 @@
     "sendButton": "Send",
     "continueButton": "Continue",
     "submitButton": "Share idea",
+    "keepRefining": "Keep refining",
+    "discard": "Discard",
+    "switchToManual": "Prefer to write it yourself?",
     "editingLabel": "Editing",
     "previewTitle": "Your idea",
     "previewEmpty": "Your idea will take shape here as you write.",
@@ -145,6 +149,12 @@
         "primary": "Go to Help",
         "secondary": "Continue as idea"
       }
+    },
+    "docSuggestion": {
+      "title": "This might already be documented",
+      "subtext": "We found related pages in the product documentation. Check them out before continuing — your answer might already be there.",
+      "viewDoc": "View documentation",
+      "dismiss": "Continue with my idea"
     },
     "prompts": {
       "q1": "What do you need, or what's frustrating you?",

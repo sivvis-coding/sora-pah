@@ -10,12 +10,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { IsArray, IsString } from 'class-validator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../users/interfaces/user.interface';
 import { UserRole } from '../../common/constants/user-role';
 import { UsersService } from '../users/users.service';
-import { CategoriesService } from '../categories/categories.service';
+import { TagsService } from '../tags/tags.service';
 import { NotificationService } from '../../integrations/notification.service';
 import { IdeasService } from './ideas.service';
 import { CreateIdeaDto } from './dto/create-idea.dto';
@@ -25,7 +26,12 @@ import { UpdateIdeaStatusDto } from './dto/update-idea-status.dto';
 import { ShareIdeaDto } from './dto/share-idea.dto';
 import { IdeaUserStory } from './interfaces/idea.interface';
 import { IdeaStatus } from './constants/idea-status';
-import { Category } from '../categories/interfaces/category.interface';
+
+class UpdateTagsDto {
+  @IsArray()
+  @IsString({ each: true })
+  tagIds: string[];
+}
 
 @Controller('ideas')
 export class IdeasController {
@@ -34,7 +40,7 @@ export class IdeasController {
   constructor(
     private readonly ideasService: IdeasService,
     private readonly usersService: UsersService,
-    private readonly categoriesService: CategoriesService,
+    private readonly tagsService: TagsService,
     private readonly notificationService: NotificationService,
     private readonly config: ConfigService,
   ) {
@@ -44,78 +50,63 @@ export class IdeasController {
 
   /**
    * GET /api/ideas/closed
-   * Returns closed ideas (backlog, implemented, discarded) hydrated with author + category.
+   * Returns closed ideas hydrated with author + tags.
    */
   @Get('closed')
   async findClosed() {
-    const [ideas, allUsers, allCategories] = await Promise.all([
+    const [ideas, allUsers, allTags] = await Promise.all([
       this.ideasService.findClosed(),
       this.usersService.findAll().catch((): User[] => []),
-      this.categoriesService.findActive().catch((): Category[] => []),
+      this.tagsService.findAll().catch(() => []),
     ]);
 
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
+    const tagMap = new Map(allTags.map((t) => [t.id, t]));
 
     return ideas.map((idea) => {
       const author = userMap.get(idea.createdBy);
-      const category = idea.categoryId ? categoryMap.get(idea.categoryId) : undefined;
       return {
         ...idea,
         author: author
           ? { name: author.name, department: author.department ?? null, jobTitle: author.jobTitle ?? null, photoBase64: author.photoBase64 ?? null }
           : null,
-        category: category
-          ? { id: category.id, name: category.name, color: category.color }
-          : null,
+        tags: (idea.tagIds ?? []).map((id) => tagMap.get(id)).filter(Boolean),
       };
     });
   }
 
   /**
    * GET /api/ideas
-   * Returns ideas hydrated with author + category info,
+   * Returns ideas hydrated with author + tags,
    * plus the list of idea IDs the current user has voted on.
    */
   @Get()
   async findAll(@CurrentUser() user: User) {
-    const [ideas, allUsers, allCategories] = await Promise.all([
+    const [ideas, allUsers, allTags] = await Promise.all([
       this.ideasService.findAll(),
       this.usersService.findAll().catch((): User[] => []),
-      this.categoriesService.findActive().catch((): Category[] => []),
+      this.tagsService.findAll().catch(() => []),
     ]);
 
-    // Build lookup maps
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
+    const tagMap = new Map(allTags.map((t) => [t.id, t]));
 
-    // Get comment counts in parallel
     const commentCounts = await Promise.all(
       ideas.map((idea) => this.ideasService.getCommentCount(idea.id).catch(() => 0)),
     );
 
-    // Hydrate ideas
     const hydrated = ideas.map((idea, idx) => {
       const author = userMap.get(idea.createdBy);
-      const category = idea.categoryId ? categoryMap.get(idea.categoryId) : undefined;
       return {
         ...idea,
         commentCount: commentCounts[idx],
         author: author
-          ? {
-              name: author.name,
-              department: author.department ?? null,
-              jobTitle: author.jobTitle ?? null,
-              photoBase64: author.photoBase64 ?? null,
-            }
+          ? { name: author.name, department: author.department ?? null, jobTitle: author.jobTitle ?? null, photoBase64: author.photoBase64 ?? null }
           : null,
-        category: category
-          ? { id: category.id, name: category.name, color: category.color }
-          : null,
+        tags: (idea.tagIds ?? []).map((id) => tagMap.get(id)).filter(Boolean),
       };
     });
 
-    // Get IDs of ideas the current user has voted on (parallel)
     let votedIdeaIds: string[] = [];
     try {
       const voteChecks = await Promise.all(
@@ -125,52 +116,69 @@ export class IdeasController {
       );
       votedIdeaIds = voteChecks.filter((id): id is string => id !== null);
     } catch {
-      // If vote lookup fails, return empty — non-critical
+      // non-critical
     }
 
     return { ideas: hydrated, votedIdeaIds };
   }
 
-  /** Any authenticated user can view idea detail + votes */
+  /** GET /api/ideas/:id */
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const [idea, votes, allUsers, allCategories] = await Promise.all([
+    const [idea, votes, allUsers, allTags] = await Promise.all([
       this.ideasService.findById(id),
       this.ideasService.getVotes(id),
       this.usersService.findAll().catch((): User[] => []),
-      this.categoriesService.findActive().catch((): Category[] => []),
+      this.tagsService.findAll().catch(() => []),
     ]);
 
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const categoryMap = new Map(allCategories.map((c) => [c.id, c]));
-
+    const tagMap = new Map(allTags.map((t) => [t.id, t]));
     const author = userMap.get(idea.createdBy);
-    const category = idea.categoryId ? categoryMap.get(idea.categoryId) : undefined;
 
     return {
       ...idea,
       votes,
       author: author
-        ? {
-            name: author.name,
-            department: author.department ?? null,
-            jobTitle: author.jobTitle ?? null,
-            photoBase64: author.photoBase64 ?? null,
-          }
+        ? { name: author.name, department: author.department ?? null, jobTitle: author.jobTitle ?? null, photoBase64: author.photoBase64 ?? null }
         : null,
-      category: category
-        ? { id: category.id, name: category.name, color: category.color }
-        : null,
+      tags: (idea.tagIds ?? []).map((id) => tagMap.get(id)).filter(Boolean),
     };
   }
 
-  /** Any authenticated user can submit an idea */
+  /** POST /api/ideas — any authenticated user */
   @Post()
-  create(@Body() dto: CreateIdeaDto, @CurrentUser() user: User) {
-    return this.ideasService.create(dto, user.id);
+  async create(@Body() dto: CreateIdeaDto, @CurrentUser() user: User) {
+    const idea = await this.ideasService.create(dto, user.id);
+    // Bump usage counters for applied tags
+    if (idea.tagIds.length > 0) {
+      this.tagsService.incrementUsage(idea.tagIds, 1).catch(() => null);
+    }
+    return idea;
   }
 
-  /** Any authenticated user can share an idea via Teams */
+  /**
+   * PATCH /api/ideas/:id/tags
+   * Any authenticated user can update tags on their own idea; admin can update any.
+   */
+  @Patch(':id/tags')
+  async updateTags(
+    @Param('id') id: string,
+    @Body() dto: UpdateTagsDto,
+    @CurrentUser() user: User,
+  ) {
+    const existing = await this.ideasService.findById(id);
+
+    // Decrement old tags, increment new ones
+    const removed = (existing.tagIds ?? []).filter((t) => !dto.tagIds.includes(t));
+    const added = dto.tagIds.filter((t) => !(existing.tagIds ?? []).includes(t));
+    if (removed.length) this.tagsService.incrementUsage(removed, -1).catch(() => null);
+    if (added.length) this.tagsService.incrementUsage(added, 1).catch(() => null);
+
+    return this.ideasService.updateTags(id, dto.tagIds);
+  }
+
+  /** POST /api/ideas/:id/share */
   @Post(':id/share')
   @HttpCode(HttpStatus.OK)
   async shareIdea(
@@ -194,13 +202,12 @@ export class IdeasController {
     return { shared: true, recipientCount: dto.recipientEmails.length };
   }
 
-  /** Admin only: change idea status */
+  /** PATCH /api/ideas/:id/status — admin only */
   @Patch(':id/status')
   @Roles(UserRole.ADMIN)
   async updateStatus(@Param('id') id: string, @Body() dto: UpdateIdeaStatusDto) {
     const idea = await this.ideasService.updateStatus(id, dto.status, dto.discardReason);
 
-    // Notify idea author on non-open status changes (fire & forget)
     if (dto.status !== IdeaStatus.OPEN) {
       const author = await this.usersService.findById(idea.createdBy).catch(() => null);
       if (author?.email) {
@@ -219,14 +226,14 @@ export class IdeasController {
     return idea;
   }
 
-  /** Admin only: save generated user story */
+  /** PATCH /api/ideas/:id/user-story — admin only */
   @Patch(':id/user-story')
   @Roles(UserRole.ADMIN)
   updateUserStory(@Param('id') id: string, @Body() userStory: IdeaUserStory) {
     return this.ideasService.updateUserStory(id, userStory);
   }
 
-  /** Any authenticated user can vote */
+  /** POST /api/ideas/:id/vote */
   @Post(':id/vote')
   vote(
     @Param('id') id: string,
@@ -236,7 +243,7 @@ export class IdeasController {
     return this.ideasService.vote(id, user.id, dto.comment);
   }
 
-  /** Remove own vote */
+  /** DELETE /api/ideas/:id/vote */
   @Delete(':id/vote')
   @HttpCode(HttpStatus.OK)
   async removeVote(@Param('id') id: string, @CurrentUser() user: User) {
@@ -244,7 +251,7 @@ export class IdeasController {
     return { removed: true };
   }
 
-  /** Admin only: soft delete */
+  /** DELETE /api/ideas/:id — admin only, soft delete */
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
@@ -255,7 +262,6 @@ export class IdeasController {
 
   // ─── Comments ──────────────────────────────────────────────────────────────
 
-  /** Get comments for an idea */
   @Get(':id/comments')
   async getComments(@Param('id') id: string) {
     const [comments, allUsers] = await Promise.all([
@@ -268,18 +274,12 @@ export class IdeasController {
       return {
         ...c,
         author: author
-          ? {
-              name: author.name,
-              department: author.department ?? null,
-              jobTitle: author.jobTitle ?? null,
-              photoBase64: author.photoBase64 ?? null,
-            }
+          ? { name: author.name, department: author.department ?? null, jobTitle: author.jobTitle ?? null, photoBase64: author.photoBase64 ?? null }
           : null,
       };
     });
   }
 
-  /** Add a comment to an idea */
   @Post(':id/comments')
   addComment(
     @Param('id') id: string,
@@ -289,7 +289,6 @@ export class IdeasController {
     return this.ideasService.addComment(id, user.id, dto.content);
   }
 
-  /** Admin or comment owner can delete */
   @Delete(':id/comments/:commentId')
   @HttpCode(HttpStatus.OK)
   async deleteComment(

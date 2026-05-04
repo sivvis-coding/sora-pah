@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '../database/app-config.service';
 
 // ─── Payload types ───────────────────────────────────────────────────────────
 
@@ -30,17 +30,8 @@ type TeamsNotification = IdeaStatusNotification | ShareIdeaNotification;
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
-  private readonly webhookUrl: string | undefined;
 
-  constructor(private readonly config: ConfigService) {
-    this.webhookUrl = this.config.get<string>('TEAMS_NOTIFICATION_WEBHOOK_URL');
-
-    if (!this.webhookUrl) {
-      this.logger.warn(
-        'TEAMS_NOTIFICATION_WEBHOOK_URL not set — Teams notifications disabled',
-      );
-    }
-  }
+  constructor(private readonly appConfig: AppConfigService) {}
 
   /**
    * Notify idea author of a status change via Power Automate.
@@ -68,8 +59,6 @@ export class NotificationService {
   // ─── Internal ──────────────────────────────────────────────────────────────
 
   private send(payload: TeamsNotification): void {
-    if (!this.webhookUrl) return;
-
     this.post(payload).catch((err) => {
       this.logger.error(
         `Failed to send Teams notification (${payload.type}) for idea ${payload.ideaId}: ${err.message}`,
@@ -78,6 +67,9 @@ export class NotificationService {
   }
 
   private async post(payload: TeamsNotification): Promise<void> {
+    const webhookUrl = await this.appConfig.get('teams', 'webhookUrl');
+    if (!webhookUrl) return;
+
     const link = `<a href="${payload.ideaUrl}">💡 Ver idea</a>`;
 
     let text: string;
@@ -105,7 +97,7 @@ export class NotificationService {
       url: payload.ideaUrl,
     };
 
-    const response = await fetch(this.webhookUrl!, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

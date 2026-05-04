@@ -1,106 +1,73 @@
 {
-  "title": "Administración del Sistema",
-  "rag": {
-    "title": "Indexación de la Base de Conocimiento",
-    "description": "Selecciona documentos específicos de ClickUp para indexar. Se incluirán todas sus subpáginas.",
-    "indexButton": "Re-indexar Docs",
-    "indexing": "Indexando…",
-    "docs": {
-      "title": "Documentos a indexar",
-      "placeholder": "ID del Doc en ClickUp (ej: 8cnxrab-20655)",
-      "hint": "Pega el ID del doc desde la URL de ClickUp y pulsa Enter",
-      "add": "Añadir",
-      "empty": "No hay documentos añadidos.",
-      "addFirst": "Añade al menos un ID de documento arriba.",
-      "duplicate": "Este ID ya está en la lista.",
-      "openInClickUp": "Abrir en ClickUp"
-    },
-    "status": {
-      "notIndexed": "No hay índice. Añade IDs de documentos y ejecuta la indexación.",
-      "indexed": "El índice está listo."
-    },
-    "result": {
-      "docs": "Documentos procesados",
-      "pages": "Páginas procesadas",
-      "chunks": "Chunks almacenados",
-      "deleted": "Chunks obsoletos eliminados",
-      "duration": "Duración"
-    },
-    "success": "Indexación completada.",
-    "error": "Error en la indexación. Revisa los logs del servidor.",
-    "test": {
-      "title": "Probar el Asistente de Conocimiento",
-      "description": "Haz una pregunta para verificar que el contenido indexado se recupera correctamente.",
-      "placeholder": "Pregunta algo sobre tus productos…",
-      "empty": "Haz una pregunta para probar el índice.",
-      "error": "Error al obtener respuesta. Revisa los logs del servidor."
-    }
-  },
   "ws": {
+    "back": "Volver a ideas",
+    "votes": "votos",
     "status": {
       "open": "Abierta",
-      "backlog": "En backlog",
+      "backlog": "En Backlog",
       "implemented": "Implementada",
       "discarded": "Descartada"
     },
-    "back": "Volver a ideas",
-    "votes": "votos",
-    "idea": {
-      "description": "Descripción",
-      "problem": "Problema",
-      "value": "Valor / impacto",
-      "solution": "Solución propuesta"
-    },
     "selector": {
       "title": "Workspace de User Stories",
-      "subtitle": "Selecciona una idea para trabajar su User Story con la IA.",
-      "searchPlaceholder": "Buscar por título o descripción…",
-      "personPlaceholder": "Filtrar por persona…",
+      "subtitle": "Selecciona una idea para generar y refinar su user story con IA.",
+      "searchPlaceholder": "Buscar ideas...",
+      "personPlaceholder": "Filtrar por persona...",
       "sort": {
         "votes": "Más votadas",
         "newest": "Más recientes"
       },
-      "empty": "No hay ideas que coincidan con los filtros."
+      "empty": "Ninguna idea coincide con tu búsqueda."
     },
     "story": {
-      "statement": "Historia de usuario",
-      "functional": "Descripción funcional",
-      "acceptance": "Criterios de aceptación",
-      "constraints": "Restricciones",
-      "outOfScope": "Fuera de alcance"
+      "statement": "Declaración de User Story",
+      "functional": "Descripción Funcional",
+      "acceptance": "Criterios de Aceptación (Gherkin)",
+      "constraints": "Restricciones Técnicas",
+      "outOfScope": "Fuera de Alcance"
     },
-    "chat": {
-      "title": "Chat con el asistente PO",
-      "welcome": "Vamos a trabajar la User Story de \"{{title}}\". Genera el borrador inicial cuando estés listo.",
-      "welcomeExisting": "La idea \"{{title}}\" ya tiene una User Story guardada. Puedes usarla o regenerarla.",
-      "storyGenerated": "He generado el borrador inicial de la User Story. Cuéntame qué quieres ajustar — puedo modificar cualquier sección, añadir criterios de aceptación, cambiar el enfoque, etc.",
-      "generateError": "No pude generar la User Story. Inténtalo de nuevo.",
-      "error": "Tuve un problema. Inténtalo de nuevo.",
-      "generating": "Generando User Story…",
-      "thinking": "Pensando…",
-      "currentStory": "US actual",
-      "placeholder": "Pide cambios, añade contexto, refina criterios…",
-      "placeholderDisabled": "Genera la User Story primero…",
-      "hint": "Shift + Enter para nueva línea · Enter para enviar"
+    "idea": {
+      "description": "Descripción",
+      "problem": "Problema",
+      "value": "Valor",
+      "solution": "Idea de solución"
     },
     "actions": {
+      "generate": "Generar user story",
+      "regenerate": "Regenerar user story",
+      "generating": "Generando...",
       "sendToClickUp": "Enviar a ClickUp",
-      "sentToClickUp": "Enviada a ClickUp",
-      "viewInClickUp": "Ver tarea en ClickUp",
-      "generate": "Generar User Story",
-      "regenerate": "Regenerar User Story",
-      "generating": "Generando…",
+      "sentToClickUp": "Enviado a ClickUp",
+      "viewInClickUp": "Ver en ClickUp",
       "markImplemented": "Marcar como implementada",
       "discard": "Descartar idea",
-      "statusError": "No se pudo actualizar el estado.",
-      "clickUpError": "Error al enviar a ClickUp."
+      "statusError": "Error al actualizar el estado. Inténtalo de nuevo.",
+      "clickUpError": "Error al enviar a ClickUp. Inténtalo de nuevo.",
+      "clickupMenuTitle": "Integraciones"
+    },
+    "actionBar": {
+      "label": "Story lista"
+    },
+    "chat": {
+      "title": "Conversación con IA",
+      "welcome": "Te ayudaré a crear una user story para \"{{title}}\". Haz clic en Generar para comenzar, o descríbeme lo que necesitas.",
+      "welcomeExisting": "Esta idea ya tiene una user story para \"{{title}}\". Puedes refinarla o generar una nueva.",
+      "storyGenerated": "Aquí está la user story que generé. Puedes pedirme que refine cualquier parte.",
+      "generateError": "Algo salió mal al generar la user story. Inténtalo de nuevo.",
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "generating": "Generando user story...",
+      "thinking": "Pensando...",
+      "currentStory": "Story actual",
+      "placeholder": "Pídeme que refine la story, ajuste criterios de aceptación, añada restricciones...",
+      "placeholderDisabled": "Primero genera una user story para iniciar la conversación.",
+      "hint": "Enter para enviar · Shift+Enter para nueva línea"
     },
     "discard": {
       "title": "Descartar idea",
-      "subtitle": "Indica el motivo por el que se descarta esta idea. Será visible para el autor.",
-      "reasonLabel": "Motivo",
+      "subtitle": "Por favor, indica el motivo para descartar esta idea. Será visible para el autor.",
+      "reasonLabel": "Motivo del descarte",
       "cancel": "Cancelar",
-      "confirm": "Descartar"
+      "confirm": "Descartar idea"
     }
   }
 }

@@ -1,106 +1,73 @@
 {
-  "title": "System Administration",
-  "rag": {
-    "title": "Knowledge Base Indexing",
-    "description": "Select specific ClickUp documents to index. All their subpages will be included.",
-    "indexButton": "Re-index Docs",
-    "indexing": "Indexing…",
-    "docs": {
-      "title": "Documents to index",
-      "placeholder": "ClickUp Doc ID (e.g. 8cnxrab-20655)",
-      "hint": "Paste the doc ID from the ClickUp URL and press Enter",
-      "add": "Add",
-      "empty": "No documents added yet.",
-      "addFirst": "Add at least one document ID above.",
-      "duplicate": "This ID is already in the list.",
-      "openInClickUp": "Open in ClickUp"
-    },
-    "status": {
-      "notIndexed": "No index found. Add doc IDs and run indexing.",
-      "indexed": "Index is ready."
-    },
-    "result": {
-      "docs": "Docs processed",
-      "pages": "Pages processed",
-      "chunks": "Chunks stored",
-      "deleted": "Stale chunks deleted",
-      "duration": "Duration"
-    },
-    "success": "Indexing complete.",
-    "error": "Indexing failed. Check server logs.",
-    "test": {
-      "title": "Test Knowledge Assistant",
-      "description": "Ask a question to verify the indexed content is being retrieved correctly.",
-      "placeholder": "Ask something about your products…",
-      "empty": "Ask a question to test the index.",
-      "error": "Error getting response. Check server logs."
-    }
-  },
   "ws": {
+    "back": "Back to ideas",
+    "votes": "votes",
     "status": {
       "open": "Open",
-      "backlog": "In backlog",
+      "backlog": "In Backlog",
       "implemented": "Implemented",
       "discarded": "Discarded"
     },
-    "back": "Back to ideas",
-    "votes": "votes",
-    "idea": {
-      "description": "Description",
-      "problem": "Problem",
-      "value": "Value / impact",
-      "solution": "Proposed solution"
-    },
     "selector": {
       "title": "User Story Workspace",
-      "subtitle": "Select an idea to work on its User Story with the AI.",
-      "searchPlaceholder": "Search by title or description…",
-      "personPlaceholder": "Filter by person…",
+      "subtitle": "Select an idea to generate and refine its user story with AI.",
+      "searchPlaceholder": "Search ideas...",
+      "personPlaceholder": "Filter by person...",
       "sort": {
         "votes": "Most voted",
         "newest": "Newest"
       },
-      "empty": "No ideas match the current filters."
+      "empty": "No ideas match your search."
     },
     "story": {
-      "statement": "User story",
-      "functional": "Functional description",
-      "acceptance": "Acceptance criteria",
-      "constraints": "Constraints",
-      "outOfScope": "Out of scope"
+      "statement": "User Story Statement",
+      "functional": "Functional Description",
+      "acceptance": "Acceptance Criteria (Gherkin)",
+      "constraints": "Technical Constraints",
+      "outOfScope": "Out of Scope"
     },
-    "chat": {
-      "title": "Chat with the PO assistant",
-      "welcome": "Let's work on the User Story for \"{{title}}\". Generate the initial draft when you're ready.",
-      "welcomeExisting": "\"{{title}}\" already has a saved User Story. You can use it or regenerate.",
-      "storyGenerated": "I've generated the initial User Story draft. Tell me what you'd like to adjust — I can modify any section, add acceptance criteria, change the focus, etc.",
-      "generateError": "Could not generate the User Story. Please try again.",
-      "error": "Something went wrong. Please try again.",
-      "generating": "Generating User Story…",
-      "thinking": "Thinking…",
-      "currentStory": "Current US",
-      "placeholder": "Request changes, add context, refine criteria…",
-      "placeholderDisabled": "Generate the User Story first…",
-      "hint": "Shift + Enter for new line · Enter to send"
+    "idea": {
+      "description": "Description",
+      "problem": "Problem",
+      "value": "Value",
+      "solution": "Solution idea"
     },
     "actions": {
+      "generate": "Generate user story",
+      "regenerate": "Regenerate user story",
+      "generating": "Generating...",
       "sendToClickUp": "Send to ClickUp",
       "sentToClickUp": "Sent to ClickUp",
-      "viewInClickUp": "View task in ClickUp",
-      "generate": "Generate User Story",
-      "regenerate": "Regenerate User Story",
-      "generating": "Generating…",
+      "viewInClickUp": "View in ClickUp",
       "markImplemented": "Mark as implemented",
       "discard": "Discard idea",
-      "statusError": "Could not update status.",
-      "clickUpError": "Error sending to ClickUp."
+      "statusError": "Failed to update status. Please try again.",
+      "clickUpError": "Failed to send to ClickUp. Please try again.",
+      "clickupMenuTitle": "Integrations"
+    },
+    "actionBar": {
+      "label": "Story ready"
+    },
+    "chat": {
+      "title": "AI Conversation",
+      "welcome": "I'll help you create a user story for \"{{title}}\". Click Generate to get started, or describe what you need.",
+      "welcomeExisting": "This idea already has a user story for \"{{title}}\". You can refine it or regenerate a new one.",
+      "storyGenerated": "Here's the user story I generated. You can ask me to refine any part of it.",
+      "generateError": "Something went wrong generating the user story. Please try again.",
+      "error": "Something went wrong. Please try again.",
+      "generating": "Generating user story...",
+      "thinking": "Thinking...",
+      "currentStory": "Current story",
+      "placeholder": "Ask me to refine the story, adjust acceptance criteria, add constraints...",
+      "placeholderDisabled": "Generate a user story first to start the conversation.",
+      "hint": "Press Enter to send · Shift+Enter for new line"
     },
     "discard": {
       "title": "Discard idea",
-      "subtitle": "Provide a reason for discarding this idea. It will be visible to the author.",
-      "reasonLabel": "Reason",
+      "subtitle": "Please provide a reason for discarding this idea. This will be visible to the author.",
+      "reasonLabel": "Reason for discarding",
       "cancel": "Cancel",
-      "confirm": "Discard"
+      "confirm": "Discard idea"
     }
   }
 }

@@ -1,9 +1,13 @@
 {
-  "title": "Progress Board",
+  "title": "What's Happening",
   "subtitle": "A window into what we are building — planned, in progress, and recently shipped.",
   "empty": "No items to show right now.",
   "lastUpdated": "Updated {{time}}",
   "noClickup": "ClickUp is not connected. Ask your admin to configure the integration.",
+  "searchPlaceholder": "Search tasks…",
+  "noResults": "No tasks match your search.",
+  "showMore": "Show {{count}} more ({{total}} remaining)",
+  "showing": "Showing {{visible}} of {{total}}",
   "columns": {
     "planned": "Planned",
     "in_progress": "In Progress",
@@ -14,11 +18,19 @@
     "in_progress": "Being built right now",
     "done": "Shipped in the last 2 weeks"
   },
+  "priority": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "none": "No priority"
+  },
   "card": {
     "builtBecause": "Built because",
+    "description": "Description",
+    "requestedBy": "Requested by",
+    "customField": "Info",
     "viewIdea": "Origin idea",
     "viewDecision": "Related decision",
-    "viewInClickup": "View in ClickUp",
     "noContext": "No additional context"
   },
   "empty_planned": "Nothing planned yet.",

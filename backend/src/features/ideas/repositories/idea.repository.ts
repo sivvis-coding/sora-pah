@@ -10,7 +10,7 @@ const CONTAINER = 'ideas';
 
 const IDEA_FIELDS: (keyof Idea)[] = [
   'id', 'title', 'description', 'problem', 'value', 'solutionIdea',
-  'productId', 'categoryId', 'createdBy', 'status', 'discardReason',
+  'productId', 'tagIds', 'createdBy', 'status', 'discardReason',
   'decisionId', 'userStory', 'voteCount', 'createdAt', 'isDeleted', 'deletedAt',
 ];
 
@@ -63,7 +63,7 @@ export class IdeaRepository {
       value: dto.value,
       solutionIdea: dto.solutionIdea ?? null,
       productId: dto.productId ?? null,
-      categoryId: dto.categoryId ?? null,
+      tagIds: dto.tagIds ?? [],
       createdBy,
       status: IdeaStatus.OPEN,
       discardReason: null,
@@ -114,5 +114,13 @@ export class IdeaRepository {
       deletedAt: new Date().toISOString(),
     };
     await this.container.item(id, id).replace<Idea>(updated);
+  }
+
+  async updateTags(id: string, tagIds: string[]): Promise<Idea> {
+    const existing = await this.findById(id);
+    if (!existing) throw new NotFoundException(`Idea ${id} not found`);
+    const updated: Idea = { ...existing, tagIds };
+    const { resource } = await this.container.item(id, id).replace<Idea>(updated);
+    return sanitize(resource!);
   }
 }

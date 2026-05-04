@@ -7,14 +7,14 @@
     "cta": "Compartir tu primera idea"
   },
   "sections": {
-    "workInProgress": "Trabajo en progreso",
+    "workInProgress": "En marcha ahora",
     "decisions": "Decisiones recientes",
     "newIdeas": "Ideas nuevas",
     "seeAll": "Ver todo"
   },
   "cta": {
     "shareIdea": "Compartir una idea",
-    "seeWhatsBeingBuilt": "Ver tablero de progreso"
+    "seeWhatsBeingBuilt": "Ver qué está en marcha"
   },
   "aboutBanner": {
     "headline": "¿Nuevo en SORA?",

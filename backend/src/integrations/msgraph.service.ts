@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ClientSecretCredential } from '@azure/identity';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
 import 'isomorphic-fetch';
+import { AppConfigService } from '../database/app-config.service';
 
 export interface AadUser {
   oid: string;
@@ -17,32 +17,47 @@ export interface AadUser {
 @Injectable()
 export class MsGraphService {
   private readonly logger = new Logger(MsGraphService.name);
-  private client: Client;
+  private _client: Client | null = null;
+  private _configHash = '';
 
-  constructor(private config: ConfigService) {
-    const tenantId = this.config.get<string>('MSGRAPH_TENANT_ID')!;
-    const clientId = this.config.get<string>('MSGRAPH_CLIENT_ID')!;
-    const clientSecret = this.config.get<string>('MSGRAPH_CLIENT_SECRET')!;
+  constructor(private appConfig: AppConfigService) {}
 
-    const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+  /**
+   * Lazy-init MS Graph client. Recreates if config changes in Cosmos.
+   * Uses azure_ad credentials — same app registration handles auth + Graph.
+   */
+  private async getClient(): Promise<Client | null> {
+    const vals = await this.appConfig.getAll('azure_ad');
+    if (!vals.tenantId || !vals.clientId || !vals.clientSecret) return null;
+
+    const hash = `${vals.tenantId}:${vals.clientId}:${vals.clientSecret}`;
+    if (this._client && hash === this._configHash) return this._client;
+
+    const credential = new ClientSecretCredential(vals.tenantId, vals.clientId, vals.clientSecret);
     const authProvider = new TokenCredentialAuthenticationProvider(credential, {
       scopes: ['https://graph.microsoft.com/.default'],
     });
 
-    this.client = Client.initWithMiddleware({ authProvider });
+    this._client = Client.initWithMiddleware({ authProvider });
+    this._configHash = hash;
+    this.logger.log('MS Graph client initialized');
+    return this._client;
   }
 
   /**
-   * Search Azure AD users by email (mail or userPrincipalName).
-   * Uses $filter with startsWith for partial matching.
+   * Search Azure AD users by name or email.
+   * Uses $search (requires ConsistencyLevel: eventual) — works for
+   * displayName, mail and userPrincipalName partial matching.
    */
   async searchUsers(search: string): Promise<AadUser[]> {
+    const client = await this.getClient();
+    if (!client) return [];
+
     try {
-      const response = await this.client
+      const response = await client
         .api('/users')
-        .filter(
-          `startsWith(mail,'${search}') or startsWith(userPrincipalName,'${search}') or startsWith(displayName,'${search}')`,
-        )
+        .header('ConsistencyLevel', 'eventual')
+        .search(`"displayName:${search}" OR "mail:${search}" OR "userPrincipalName:${search}"`)
         .select('id,displayName,mail,userPrincipalName,jobTitle,department')
         .top(10)
         .get();
@@ -56,7 +71,7 @@ export class MsGraphService {
         department: u.department,
       }));
     } catch (err: any) {
-      this.logger.error(`Graph searchUsers failed: ${err.message}`);
+      this.logger.error(`Graph searchUsers failed: ${err.message}`, err.body ?? err.stack);
       return [];
     }
   }
@@ -65,8 +80,11 @@ export class MsGraphService {
    * Get a single user profile by OID.
    */
   async getUserProfile(oid: string): Promise<AadUser | null> {
+    const client = await this.getClient();
+    if (!client) return null;
+
     try {
-      const u = await this.client
+      const u = await client
         .api(`/users/${oid}`)
         .select('id,displayName,mail,userPrincipalName,jobTitle,department')
         .get();
@@ -90,8 +108,11 @@ export class MsGraphService {
    * Returns null if no photo is available.
    */
   async getUserPhoto(oid: string): Promise<string | null> {
+    const client = await this.getClient();
+    if (!client) return null;
+
     try {
-      const response = await this.client
+      const response = await client
         .api(`/users/${oid}/photo/$value`)
         .responseType('arraybuffer' as any)
         .get();
@@ -110,8 +131,11 @@ export class MsGraphService {
    * Resolve a user by email — finds exact match on mail or userPrincipalName.
    */
   async resolveByEmail(email: string): Promise<AadUser | null> {
+    const client = await this.getClient();
+    if (!client) return null;
+
     try {
-      const response = await this.client
+      const response = await client
         .api('/users')
         .filter(`mail eq '${email}' or userPrincipalName eq '${email}'`)
         .select('id,displayName,mail,userPrincipalName,jobTitle,department')
@@ -141,9 +165,12 @@ export class MsGraphService {
    * Returns true if sent, false if permissions are missing or user not found.
    */
   async sendTeamsDirectMessage(recipientOid: string, message: string): Promise<boolean> {
+    const client = await this.getClient();
+    if (!client) return false;
+
     try {
       // Step 1 — create or get existing 1:1 chat
-      const chat = await this.client
+      const chat = await client
         .api('/chats')
         .post({
           chatType: 'oneOnOne',
@@ -157,7 +184,7 @@ export class MsGraphService {
         });
 
       // Step 2 — send message
-      await this.client
+      await client
         .api(`/chats/${chat.id}/messages`)
         .post({
           body: { content: message, contentType: 'html' },

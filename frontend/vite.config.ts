@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ['react-markdown', 'remark-gfm'],
+  },
   server: {
     port: 5173,
     // Required for Docker: bind to all interfaces so the container is reachable

@@ -25,11 +25,13 @@ import {
   Lightbulb as LightbulbIcon,
 } from '@mui/icons-material';
 import { ideasApi, type IdeaDetail, type Idea, type IdeaComment } from '../api/ideas.api';
-import { categoriesApi, type Category } from '../../categories/api/categories.api';
 import { useAuth } from '../../auth/AuthContext';
 import { useMode } from '../../../shared/ModeContext';
 import { AppMode } from '../../../shared/constants';
 import ShareButton from '../../../shared/components/ShareButton';
+import { useSetup } from '../../setup/SetupProvider';
+import TagChips from '../../tags/components/TagChips';
+import TagInput from '../../tags/components/TagInput';
 
 const statusColor: Record<Idea['status'], 'success' | 'warning' | 'info' | 'error'> = {
   open: 'success',
@@ -88,6 +90,8 @@ export default function IdeaDetailPage() {
   const { mode } = useMode();
   const navigate = useNavigate();
   const isAdmin = mode === AppMode.ADMIN;
+  const { status } = useSetup();
+  const hasOpenAI = !!status?.features?.openai;
   const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -101,18 +105,12 @@ export default function IdeaDetailPage() {
     enabled: !!id,
   });
 
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['categories'],
-    queryFn: categoriesApi.listActive,
-  });
-
   const { data: comments = [], isLoading: commentsLoading } = useQuery<IdeaComment[]>({
     queryKey: ['ideas', id, 'comments'],
     queryFn: () => ideasApi.getComments(id!),
     enabled: !!id,
   });
 
-  const category = categories.find((c) => c.id === (data as any)?.categoryId);
   const hasVoted = data?.votes?.some((v) => v.userId === user?.id);
 
   const voteMutation = useMutation({
@@ -122,6 +120,11 @@ export default function IdeaDetailPage() {
 
   const removeVoteMutation = useMutation({
     mutationFn: () => ideasApi.removeVote(id!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ideas', id] }),
+  });
+
+  const updateTagsMutation = useMutation({
+    mutationFn: (tagIds: string[]) => ideasApi.updateTags(id!, tagIds),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ideas', id] }),
   });
 
@@ -211,21 +214,21 @@ export default function IdeaDetailPage() {
             size="small"
             sx={{ fontWeight: 600, borderRadius: 1.5, fontSize: '0.72rem' }}
           />
-          {category && (
-            <Chip
-              label={category.name}
-              size="small"
-              sx={{
-                borderRadius: 1.5,
-                fontWeight: 600,
-                fontSize: '0.72rem',
-                ...(category.color
-                  ? { bgcolor: category.color, color: '#fff' }
-                  : { bgcolor: 'action.selected' }),
-              }}
-            />
-          )}
+          <TagChips tags={data.tags ?? []} />
         </Box>
+
+        {/* Admin: edit tags inline */}
+        {mode === AppMode.ADMIN && (
+          <Box sx={{ mb: 2 }}>
+            <TagInput
+              value={(data.tagIds ?? [])}
+              onChange={(tagIds) => updateTagsMutation.mutate(tagIds)}
+              ideaTitle={data.title}
+              ideaDescription={data.description}
+              aiAvailable={hasOpenAI}
+            />
+          </Box>
+        )}
 
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>

@@ -10,9 +10,11 @@ import { StakeholdersModule } from './features/stakeholders/stakeholders.module'
 import { GraphModule } from './features/graph/graph.module';
 import { HealthModule } from './features/health/health.module';
 import { IdeasModule } from './features/ideas/ideas.module';
-import { CategoriesModule } from './features/categories/categories.module';
+import { TagsModule } from './features/tags/tags.module';
 import { AIModule } from './integrations/ai.module';
 import { ProgressBoardModule } from './features/progress-board/progress-board.module';
+import { SetupModule } from './features/setup/setup.module';
+import { LearnModule } from './features/learn/learn.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -27,10 +29,12 @@ import { RolesGuard } from './common/guards/roles.guard';
     StakeholdersModule,
     GraphModule,
     IdeasModule,
-    CategoriesModule,
+    TagsModule,
     AIModule,
     HealthModule,
     ProgressBoardModule,
+    SetupModule,
+    LearnModule,
   ],
   providers: [
     // Order matters: JwtAuthGuard runs first (populates request.user),

@@ -1,6 +1,7 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { RagService } from './rag/rag.service';
+import { RetrievedChunk } from './rag/interfaces';
+import { AppConfigService } from '../database/app-config.service';
 
 export interface IdeaImprovement {
   suggestedTitle: string;
@@ -38,11 +39,29 @@ export interface IdeaDraft {
   module: string;
 }
 
+export interface DocSuggestion {
+  title: string;
+  url: string;
+}
+
+export interface Guardrail {
+  type: 'bug' | 'documented';
+  docSuggestions: DocSuggestion[];
+}
+
 export interface ConverseResult {
   reply: string;
   ready: boolean;
   draft: IdeaDraft | null;
   responseId: string | null;
+  /** AI-driven guardrail — null means genuine idea, continue normal flow */
+  guardrail: Guardrail | null;
+}
+
+export interface LearnAnswerResult {
+  canAnswer: boolean;
+  answer: string;
+  reason: string;
 }
 
 // ─── System Prompts ───────────────────────────────────────────────────────────
@@ -114,26 +133,22 @@ Genera una User Story con EXACTAMENTE estos campos en formato JSON (responde SÓ
 @Injectable()
 export class AIService {
   private readonly logger = new Logger(AIService.name);
-  private readonly apiKey: string;
   private readonly openAiUrl = 'https://api.openai.com/v1/responses';
   private readonly chatUrl = 'https://api.openai.com/v1/chat/completions';
   private readonly reasoningModel = 'gpt-5.4';
   private readonly fastModel = 'gpt-4o';
 
   constructor(
-    private readonly config: ConfigService,
+    private readonly appConfig: AppConfigService,
     @Optional() private readonly ragService?: RagService,
-  ) {
-    this.apiKey = this.config.get<string>('OPENAI_API_KEY', '');
-    if (!this.apiKey) {
-      this.logger.warn(
-        'OPENAI_API_KEY not configured — AI service will use mock responses',
-      );
-    }
+  ) {}
+
+  private async getApiKey(): Promise<string> {
+    return (await this.appConfig.get('openai', 'apiKey')) ?? '';
   }
 
-  private isConfigured(): boolean {
-    return !!this.apiKey;
+  private async isConfigured(): Promise<boolean> {
+    return !!(await this.getApiKey());
   }
 
   // ─── OpenAI helpers ──────────────────────────────────────────────────────────
@@ -157,6 +172,7 @@ export class AIService {
     history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
     effort: 'low' | 'medium' | 'high' = 'medium',
   ): Promise<string> {
+    const apiKey = await this.getApiKey();
     const input: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt },
       ...history.map((m) => ({ role: m.role, content: m.content })),
@@ -167,7 +183,7 @@ export class AIService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: this.reasoningModel,
@@ -207,24 +223,29 @@ export class AIService {
     systemPrompt: string,
     userMessage: string,
     history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
+    jsonMode = false,
   ): Promise<string> {
+    const apiKey = await this.getApiKey();
     const messages: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt },
       ...history.map((m) => ({ role: m.role, content: m.content })),
       { role: 'user', content: userMessage },
     ];
 
+    const body: Record<string, unknown> = {
+      model: this.fastModel,
+      messages,
+      temperature: 0.3,
+    };
+    if (jsonMode) body['response_format'] = { type: 'json_object' };
+
     const res = await fetch(this.chatUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: this.fastModel,
-        messages,
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -263,7 +284,7 @@ export class AIService {
   }): Promise<IdeaImprovement> {
     this.logger.log('generateIdeaSummary called');
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         const prompt = `Dado el siguiente texto de una idea de producto, genera:
 1. Un título conciso y accionable (máx. 80 caracteres)
@@ -276,6 +297,7 @@ Solución propuesta: ${input.solutionIdea ?? 'no especificada'}
 Responde SÓLO en JSON: { "suggestedTitle": "...", "suggestedSummary": "..." }`;
 
         const raw = await this.chatCompletionFast(USER_STORY_SYSTEM_PROMPT, prompt, []);
+        return this.parseJson<IdeaImprovement>(raw);
       } catch (err) {
         this.logger.error('generateIdeaSummary OpenAI call failed', err);
         // Fall through to mock
@@ -303,7 +325,7 @@ Responde SÓLO en JSON: { "suggestedTitle": "...", "suggestedSummary": "..." }`;
   ): Promise<{ intent: IntentClass; confidence: number }> {
     this.logger.log('classifyIntent called');
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         const prompt = `Clasifica el siguiente texto en una de estas categorías:
 - "bug": El usuario reporta un problema técnico o defecto
@@ -350,7 +372,7 @@ Responde SÓLO en JSON: { "intent": "bug|help|idea", "confidence": 0.0-1.0 }`;
   }): Promise<UserStory> {
     this.logger.log('generateUserStory called');
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         const userMessage = USER_STORY_GENERATION_PROMPT
           .replace('{title}', idea.title)
@@ -406,43 +428,80 @@ Responde SÓLO en JSON: { "intent": "bug|help|idea", "confidence": 0.0-1.0 }`;
   async answerQuestionFromDocs(
     question: string,
     history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
-  ): Promise<{ answer: string; sources: string[] }> {
+  ): Promise<{ answer: string; sources: { title: string; url: string }[] }> {
     this.logger.log(`answerQuestionFromDocs called: "${question}" (history: ${history.length} turns)`);
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         // Try RAG retrieval first
-        let context = '';
-        let sources: string[] = [];
+        let sourceMap: Map<string, { title: string; url: string }> = new Map();
 
         if (this.ragService) {
           try {
             const chunks = await this.ragService.retrieve(question, 5);
             if (chunks.length > 0) {
-              context = chunks
-                .map((c) => `[${c.docTitle} > ${c.pageTitle}]\n${c.content}`)
+              // Build a numbered source index so the model can reference by key
+              let idx = 1;
+              const seen = new Set<string>();
+              for (const c of chunks) {
+                if (!seen.has(c.pageUrl)) {
+                  seen.add(c.pageUrl);
+                  sourceMap.set(`S${idx}`, { title: `${c.docTitle} > ${c.pageTitle}`, url: c.pageUrl });
+                  idx++;
+                }
+              }
+
+              const contextWithKeys = chunks
+                .map((c) => {
+                  const key = [...sourceMap.entries()].find(([, v]) => v.url === c.pageUrl)?.[0] ?? '';
+                  return `[${key}: ${c.docTitle} > ${c.pageTitle}]\n${c.content}`;
+                })
                 .join('\n---\n');
-              sources = [
-                ...new Set(chunks.map((c) => `${c.docTitle} > ${c.pageTitle}`)),
-              ];
+
+              const sourceIndex = [...sourceMap.entries()]
+                .map(([k, v]) => `${k}: ${v.title}`)
+                .join('\n');
+
+              const systemPrompt = `${USER_STORY_SYSTEM_PROMPT}
+
+Eres el asistente de conocimiento del producto SORA.
+Responde preguntas basándote EXCLUSIVAMENTE en la documentación proporcionada.
+Si la información no está en el contexto, dilo claramente.
+
+Índice de fuentes disponibles:
+${sourceIndex}
+
+---
+Documentación relevante:
+${contextWithKeys}
+
+---
+IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON con esta estructura exacta:
+{
+  "answer": "<respuesta en markdown>",
+  "usedSources": ["S1", "S3"]
+}
+"usedSources" debe contener SOLO las claves (S1, S2...) de las fuentes cuya información hayas usado realmente en la respuesta. Si no usaste ninguna, devuelve un array vacío.`;
+
+              const raw = await this.chatCompletionFast(systemPrompt, question, history, true);
+              const parsed = this.parseJson<{ answer: string; usedSources: string[] }>(raw);
+
+              const usedSources = (parsed.usedSources ?? [])
+                .filter((k) => sourceMap.has(k))
+                .map((k) => sourceMap.get(k)!);
+
+              return {
+                answer: parsed.answer ?? raw,
+                sources: usedSources,
+              };
             }
           } catch (err) {
             this.logger.warn(`RAG retrieval failed, falling back: ${err}`);
           }
         }
 
-        const systemPrompt = context
-          ? `${USER_STORY_SYSTEM_PROMPT}
-
-Eres el asistente de conocimiento del producto SORA.
-Responde preguntas basándote EXCLUSIVAMENTE en la documentación proporcionada.
-Si la información no está en el contexto, dilo claramente.
-Menciona la fuente (documento/página) cuando cites información específica.
-
----
-Documentación relevante:
-${context}`
-          : `${USER_STORY_SYSTEM_PROMPT}
+        // No RAG context — answer from general knowledge, no sources
+        const systemPrompt = `${USER_STORY_SYSTEM_PROMPT}
 
 Adicionalmente, actúas como asistente de conocimiento del producto SORA.
 Responde preguntas sobre el producto, sus módulos y procesos.
@@ -450,16 +509,8 @@ Si no tienes información suficiente para responder con precisión, indícalo cl
 Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, PlanT, Facturas, Personas) está relacionado con la pregunta.`;
 
         const raw = await this.chatCompletionFast(systemPrompt, question, history);
+        return { answer: raw, sources: [] };
 
-        return {
-          answer: raw,
-          sources: sources.length > 0
-            ? sources
-            : [
-                'Documentación del producto (ClickUp)',
-                'https://doc.clickup.com/9015583051/d/h/8cnxrab-20655/31303a91ed916b3',
-              ],
-        };
       } catch (err) {
         this.logger.error('answerQuestionFromDocs OpenAI call failed', err);
       }
@@ -473,11 +524,85 @@ Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, 
         'Cuando esté conectado a la fuente de documentación (ClickUp), proporcionará ' +
         'respuestas contextuales basadas en la base de conocimiento del producto.\n\n' +
         'Módulos disponibles: Campañas, Promotores, PlanT, Facturas y Personas.',
-      sources: [
-        'Documentación del producto (ClickUp)',
-        'https://doc.clickup.com/9015583051/d/h/8cnxrab-20655/31303a91ed916b3',
-      ],
+      sources: [{ title: 'Documentación del producto (ClickUp)', url: 'https://doc.clickup.com/9015583051/d/h/8cnxrab-20655/31303a91ed916b3' }],
     };
+  }
+
+  // ─── Use Case 3b: Learn Q&A auto-answer ──────────────────────────────────
+
+  /**
+   * Parse a ClickUp doc URL into internal app route.
+   * Input:  https://doc.clickup.com/{teamId}/d/h/{docId}/{pageId}
+   * Output: /docs?doc={docId}&page={pageId}
+   */
+  private toInternalDocUrl(clickupUrl: string): string {
+    try {
+      const { pathname } = new URL(clickupUrl);
+      const parts = pathname.split('/').filter(Boolean);
+      // Expected: [teamId, 'd', 'h', docId, ...rest, pageId]
+      if (parts.length >= 5 && parts[1] === 'd' && parts[2] === 'h') {
+        const docId = parts[3];
+        const pageId = parts[parts.length - 1];
+        return `/docs?doc=${docId}&page=${pageId}`;
+      }
+    } catch { /* ignore */ }
+    return clickupUrl; // fallback to original if parsing fails
+  }
+
+  /**
+   * Given a user's question and retrieved RAG chunks, let the LLM decide
+   * whether it can give a helpful answer based on the documentation.
+   *
+   * Returns null if AI is not configured (no API key).
+   *
+   * The LLM has 3 responsibilities:
+   *   1. Judge whether the chunks actually help answer the question
+   *   2. If yes: write a concise, helpful answer in Spanish with source links
+   *   3. If no: explain WHY it can't answer (missing topic, wrong context, etc.)
+   */
+  async answerLearnQuestion(
+    question: string,
+    chunks: RetrievedChunk[],
+  ): Promise<LearnAnswerResult | null> {
+    this.logger.log(`answerLearnQuestion called: "${question}" (${chunks.length} chunks)`);
+
+    if (!(await this.isConfigured())) return null;
+
+    const context = chunks
+      .map((c, i) => {
+        const appUrl = this.toInternalDocUrl(c.pageUrl);
+        return `[${i + 1}] ${c.docTitle} > ${c.pageTitle} (${appUrl})\n${c.content}`;
+      })
+      .join('\n---\n');
+
+    const systemPrompt = `Eres el asistente de conocimiento de SORA, un producto interno de gestión operativa de field marketing.
+
+Tu tarea: un compañero del equipo ha hecho una duda. Se han recuperado fragmentos de documentación interna por búsqueda vectorial. Tú decides si esos fragmentos permiten dar una respuesta ÚTIL y CORRECTA a la duda.
+
+REGLAS:
+- Si la documentación contiene información relevante para responder → responde de forma clara y concisa en español.
+- Incluye enlaces a las páginas fuente que hayas usado (formato markdown: [título](url)). Las URLs ya son rutas internas de la app — úsalas tal cual.
+- Si la documentación NO es relevante, es sobre otro tema, o no tiene suficiente información para responder correctamente → NO respondas. Explica brevemente por qué no puedes.
+- NUNCA inventes información. Solo usa lo que está en los fragmentos.
+- Sé directo. No hagas introducciones largas.
+
+Fragmentos de documentación:
+${context}
+
+Responde EXCLUSIVAMENTE con este JSON:
+{
+  "canAnswer": true/false,
+  "answer": "tu respuesta en markdown (solo si canAnswer=true, vacío si false)",
+  "reason": "por qué no puedes responder (solo si canAnswer=false, vacío si true)"
+}`;
+
+    try {
+      const raw = await this.chatCompletionFast(systemPrompt, question, [], true);
+      return this.parseJson<LearnAnswerResult>(raw);
+    } catch (err) {
+      this.logger.error('answerLearnQuestion failed', err);
+      return null;
+    }
   }
 
   // ─── Use Case 4: Similar Idea Detection ─────────────────────────────────────
@@ -500,7 +625,7 @@ Cuando sea relevante, menciona qué módulo del sistema (Campañas, Promotores, 
 
     if (ideas.length === 0) return [];
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         const ideaList = ideas
           .slice(0, 30) // cap at 30 to keep prompt size reasonable
@@ -585,7 +710,7 @@ Incluye máximo 3 ideas. Si ninguna supera 0.45 de similitud, devuelve [].`;
   }): Promise<{ approved: boolean; followUp: string | null }> {
     this.logger.log(`evaluateIdeaInput called (phase: ${input.phase})`);
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         const phaseContext =
           input.phase === 'need'
@@ -659,8 +784,9 @@ Responde SÓLO en JSON:
   async converse(
     userMessage: string,
     previousResponseId: string | null,
+    images?: string[],
   ): Promise<ConverseResult> {
-    this.logger.log(`converse called (previousResponseId: ${previousResponseId ?? 'none'})`);
+    this.logger.log(`converse called (previousResponseId: ${previousResponseId ?? 'none'}, images: ${images?.length ?? 0})`);
 
     const CONVERSE_INSTRUCTIONS = `${USER_STORY_SYSTEM_PROMPT}
 
@@ -678,15 +804,79 @@ REGLAS DE CONVERSACIÓN:
 4. Cuando tengas suficiente contexto (módulo + problema real + impacto), responde con el JSON de cierre.
 5. Si el usuario dice "no sé" o "sin solución" en la pregunta de cómo, acéptalo y avanza.
 
+REGLAS DE VALIDACIÓN DEL VALOR:
+El "por qué importa" debe reflejar un IMPACTO DE NEGOCIO concreto, no una actividad.
+Estas justificaciones NO son suficientes por sí solas y DEBES profundizar:
+- "necesito reportar / informar / enviar a mi jefe" → pregunta: ¿qué decisión se toma con ese reporte? ¿qué pasa si no lo tiene?
+- "necesito exportar / descargar datos" → pregunta: ¿para qué se usan esos datos? ¿qué proceso depende de ellos?
+- "necesito ver / consultar información" → pregunta: ¿qué acción tomas con esa información? ¿qué pasa hoy sin ella?
+- "me lo han pedido / lo necesitan" → pregunta: ¿quién lo necesita y qué problema resuelve para esa persona?
+- "para mejorar / agilizar" → pregunta: ¿cuánto tiempo se pierde hoy? ¿qué consecuencia tiene la lentitud?
+
+Buenos ejemplos de valor real:
+- "El responsable de zona necesita el desglose por PDV para decidir si renueva la campaña → impacta facturación"
+- "Sin este dato, contabilidad cierra 3 días tarde → penalizaciones del cliente"
+- "Los coordinadores pierden 2h/día copiando datos a mano → coste de personal"
+
+Si el usuario da un "por qué" superficial, REFORMULA la pregunta orientándola al impacto:
+"Entiendo que necesitas reportar a tu responsable, pero ¿qué decisión se toma con ese reporte? ¿Qué pasa si no llega o llega tarde? Eso me ayuda a priorizar."
+
 CUÁNDO CONSIDERAR QUE TIENES SUFICIENTE INFORMACIÓN:
 - Sabes en qué parte del sistema ocurre (módulo/pantalla)
-- Sabes qué problema real resuelve (no solo "mejorar")
-- Sabes quién se beneficia y por qué importa
+- Sabes qué problema real resuelve (no solo "mejorar" o "reportar")
+- Sabes quién se beneficia y por qué importa al NEGOCIO (impacto medible: tiempo, dinero, riesgo, calidad)
+- El "por qué" supera el test: "¿esto describe una CONSECUENCIA de negocio o solo una TAREA?"
+  Si solo describe una tarea (exportar, enviar, consultar), FALTA profundizar.
+
+---
+
+CLASIFICACIÓN DE GUARDARRAÍL:
+En CADA respuesta debes clasificar lo que el usuario describe. Usa el CONOCIMIENTO DEL PRODUCTO
+(si está disponible abajo) para decidir:
+
+1. "bug" — El usuario describe algo que YA EXISTE en el producto y está ROTO o no funciona correctamente.
+   Señales: "no funciona", "da error", "se queda cargando", "antes funcionaba", "sale mal el cálculo",
+   "no me deja guardar", "la pantalla se queda en blanco".
+   IMPORTANTE: La palabra "problema" NO siempre significa bug. "Tengo el problema de que no puedo
+   exportar" es una necesidad, NO un bug. Un bug es cuando una funcionalidad EXISTENTE falla técnicamente.
+
+2. "documented" — Lo que el usuario pide YA EXISTE en el producto y está documentado.
+   Solo usa esta clasificación si en el CONOCIMIENTO DEL PRODUCTO aparece claramente la funcionalidad
+   que el usuario describe. Si tienes dudas, NO clasifiques como documented.
+
+3. null — Es una idea genuina: una necesidad nueva no cubierta por el producto actual.
+   Este es el caso por defecto. En caso de duda, clasifica como null y sigue conversando.
+
+REGLA DE ORO: Si no estás SEGURO de que es bug o documented, clasifica como null.
+Es mejor dejar pasar una idea que bloquear al usuario incorrectamente.
+
+---
 
 FORMATO DE RESPUESTA:
-Durante la conversación responde con texto plano en español (solo la siguiente pregunta o comentario).
+Responde SIEMPRE con JSON válido (sin markdown, sin backticks).
 
-Cuando tengas suficiente información responde EXCLUSIVAMENTE con este JSON (sin markdown):
+Mientras conversas (no listo aún):
+{
+  "ready": false,
+  "reply": "tu pregunta o comentario en español",
+  "guardrail": null
+}
+
+Si detectas un bug:
+{
+  "ready": false,
+  "reply": "Entiendo, parece que [funcionalidad X] no está funcionando correctamente. Te recomiendo reportarlo como incidencia para que el equipo técnico lo revise.",
+  "guardrail": "bug"
+}
+
+Si lo que pide ya está documentado:
+{
+  "ready": false,
+  "reply": "Lo que describes ya existe en el sistema. [Breve explicación de dónde encontrarlo]. ¿Hay algo adicional que necesites más allá de esto?",
+  "guardrail": "documented"
+}
+
+Cuando tengas suficiente información para cerrar:
 {
   "ready": true,
   "reply": "Frase de cierre natural confirmando que ya tienes todo",
@@ -695,19 +885,16 @@ Cuando tengas suficiente información responde EXCLUSIVAMENTE con este JSON (sin
     "why": "por qué es importante, impacto, contexto de negocio",
     "how": "solución propuesta si la mencionó, o vacío",
     "module": "módulo o pantalla específica"
-  }
-}
-
-Mientras conversas (no listo aún) responde EXCLUSIVAMENTE con este JSON:
-{
-  "ready": false,
-  "reply": "tu pregunta o comentario en español"
+  },
+  "guardrail": null
 }`;
 
-    if (this.isConfigured()) {
+    if (await this.isConfigured()) {
       try {
         // RAG: enrich instructions with relevant product knowledge for this turn
         let instructions = CONVERSE_INSTRUCTIONS;
+        const ragDocSuggestions: DocSuggestion[] = [];
+
         if (this.ragService) {
           try {
             const chunks = await this.ragService.retrieve(userMessage, 3);
@@ -720,11 +907,24 @@ Mientras conversas (no listo aún) responde EXCLUSIVAMENTE con este JSON:
 ---
 
 CONOCIMIENTO DEL PRODUCTO RELEVANTE A LO QUE DIJO EL USUARIO:
-Usa esta información para hacer preguntas más precisas y contextualizadas.
-Si el usuario mencionó algo que coincide con una funcionalidad existente, menciona esa referencia en tu pregunta para ayudarle a ubicarse.
-NO respondas con este contenido directamente — úsalo para conversar con criterio.
+Usa esta información para clasificar el guardarraíl y para hacer preguntas más precisas.
+Si lo que describe el usuario coincide con una funcionalidad documentada aquí, clasifica como "documented".
+Si lo que describe parece un fallo de algo que ya existe aquí, clasifica como "bug".
+Si es algo nuevo no cubierto por este conocimiento, clasifica como null y sigue conversando.
 
 ${ragContext}`;
+
+              // Pre-build doc suggestions in case AI classifies as "documented"
+              const seen = new Set<string>();
+              for (const c of chunks) {
+                if (!seen.has(c.pageUrl)) {
+                  seen.add(c.pageUrl);
+                  ragDocSuggestions.push({
+                    title: `${c.docTitle} › ${c.pageTitle}`,
+                    url: this.toInternalDocUrl(c.pageUrl),
+                  });
+                }
+              }
             }
           } catch (ragErr) {
             this.logger.warn(`RAG retrieval failed in converse, skipping: ${ragErr}`);
@@ -732,10 +932,25 @@ ${ragContext}`;
         }
 
         // Build Responses API request body
+        const apiKey = await this.getApiKey();
+
+        // Build input: multimodal (content parts) when images attached, plain string otherwise
+        let input: unknown = userMessage;
+        if (images && images.length > 0) {
+          const contentParts: Record<string, unknown>[] = [
+            { type: 'input_text', text: userMessage },
+            ...images.map((dataUrl) => ({
+              type: 'input_image',
+              image_url: dataUrl,
+            })),
+          ];
+          input = [{ role: 'user', content: contentParts }];
+        }
+
         const body: Record<string, unknown> = {
-          model: this.fastModel,
+        model: this.fastModel,
           instructions,
-          input: userMessage,
+          input,
           store: true,
         };
         if (previousResponseId) {
@@ -746,7 +961,7 @@ ${ragContext}`;
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(body),
         });
@@ -772,9 +987,16 @@ ${ragContext}`;
           raw = msg?.content?.find((c) => c.type === 'output_text')?.text ?? '';
         }
 
-        const result = this.parseJson<Omit<ConverseResult, 'responseId'>>(raw);
+        const result = this.parseJson<Omit<ConverseResult, 'responseId' | 'guardrail'> & { guardrail?: string | null }>(raw);
         if (typeof result.ready === 'boolean' && typeof result.reply === 'string') {
-          return { ...result, responseId: data.id };
+          // Build guardrail from AI classification + RAG doc suggestions
+          let guardrail: Guardrail | null = null;
+          if (result.guardrail === 'bug') {
+            guardrail = { type: 'bug', docSuggestions: [] };
+          } else if (result.guardrail === 'documented' && ragDocSuggestions.length > 0) {
+            guardrail = { type: 'documented', docSuggestions: ragDocSuggestions };
+          }
+          return { ...result, responseId: data.id, guardrail };
         }
         throw new Error('Unexpected shape from converse AI response');
 
@@ -787,6 +1009,7 @@ ${ragContext}`;
             : '¿Puedes contarme qué problema concreto quieres resolver y quién se ve afectado?',
           draft: null,
           responseId: null,
+          guardrail: null,
         };
       }
     }
@@ -798,6 +1021,7 @@ ${ragContext}`;
         reply: '¿En qué módulo o pantalla del sistema necesitas esto? (Campañas, Promotores, PlanT, Facturas o Personas)',
         draft: null,
         responseId: 'mock-1',
+        guardrail: null,
       };
     }
     if (previousResponseId === 'mock-1') {
@@ -806,6 +1030,7 @@ ${ragContext}`;
         reply: '¿Quién usaría esta funcionalidad y con qué frecuencia la necesitaría?',
         draft: null,
         responseId: 'mock-2',
+        guardrail: null,
       };
     }
     return {
@@ -818,6 +1043,7 @@ ${ragContext}`;
         module: 'Personas',
       },
       responseId: 'mock-3',
+      guardrail: null,
     };
   }
 
@@ -832,5 +1058,72 @@ ${ragContext}`;
       knowledgeQA: 'Responde basándote en el contexto del sistema. Menciona el módulo relevante cuando sea aplicable.',
       similarIdeas: 'Detecta ideas semánticamente similares. JSON: [{ id, title, similarity, reason }]',
     };
+  }
+
+  // ─── Tag suggestion ──────────────────────────────────────────────────────────
+
+  /**
+   * Suggest 3-5 tags for an idea.
+   * Prefers reusing names from existingTagNames; creates new ones when needed.
+   * Returns array of tag name strings (lowercase).
+   * Falls back to empty array if AI not configured.
+   */
+  async suggestTags(
+    title: string,
+    description: string,
+    existingTagNames: string[],
+  ): Promise<string[]> {
+    const configured = await this.isConfigured();
+    if (!configured) return [];
+
+    const apiKey = await this.getApiKey();
+
+    const existingList = existingTagNames.length > 0
+      ? `Tags existentes (reutiliza si aplica): ${existingTagNames.join(', ')}`
+      : 'No hay tags existentes aún — crea los que sean más descriptivos.';
+
+    const prompt = `
+Analiza la siguiente idea y sugiere entre 3 y 5 tags descriptivos en español.
+${existingList}
+
+Idea:
+Título: ${title}
+Descripción: ${description}
+
+Reglas:
+- Reutiliza tags existentes cuando encajen exactamente.
+- Crea tags nuevos solo si ninguno existente describe bien el concepto.
+- Tags en minúsculas, sin acentos, máximo 30 caracteres cada uno.
+- Responde SOLO con JSON válido: { "tags": ["tag1", "tag2", "tag3"] }
+`.trim();
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.fastModel,
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.3,
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) return [];
+      const data = (await response.json()) as { choices: Array<{ message: { content: string } }> };
+      const content = data.choices?.[0]?.message?.content ?? '{}';
+      const parsed = JSON.parse(content) as { tags?: unknown };
+      if (!Array.isArray(parsed.tags)) return [];
+      return (parsed.tags as unknown[])
+        .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+        .map((t) => t.toLowerCase().trim())
+        .slice(0, 5);
+    } catch {
+      return [];
+    }
   }
 }

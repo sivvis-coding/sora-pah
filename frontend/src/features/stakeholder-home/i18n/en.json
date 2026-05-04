@@ -7,14 +7,14 @@
     "cta": "Share your first idea"
   },
   "sections": {
-    "workInProgress": "Work in progress",
+    "workInProgress": "Happening now",
     "decisions": "Recent decisions",
     "newIdeas": "New ideas",
     "seeAll": "See all"
   },
   "cta": {
     "shareIdea": "Share an idea",
-    "seeWhatsBeingBuilt": "See progress board"
+    "seeWhatsBeingBuilt": "See what's happening"
   },
   "aboutBanner": {
     "headline": "New to SORA?",

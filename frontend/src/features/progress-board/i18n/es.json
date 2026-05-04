@@ -1,9 +1,13 @@
 {
-  "title": "Tablero de Progreso",
+  "title": "En marcha",
   "subtitle": "Una ventana a lo que estamos construyendo — planificado, en progreso y recientemente lanzado.",
   "empty": "No hay elementos para mostrar ahora.",
   "lastUpdated": "Actualizado {{time}}",
   "noClickup": "ClickUp no está conectado. Pide a tu administrador que configure la integración.",
+  "searchPlaceholder": "Buscar tareas…",
+  "noResults": "Ninguna tarea coincide con tu búsqueda.",
+  "showMore": "Ver {{count}} más (quedan {{total}})",
+  "showing": "Mostrando {{visible}} de {{total}}",
   "columns": {
     "planned": "Planificado",
     "in_progress": "En Progreso",
@@ -14,11 +18,19 @@
     "in_progress": "Se está construyendo ahora",
     "done": "Lanzado en las últimas 2 semanas"
   },
+  "priority": {
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja",
+    "none": "Sin prioridad"
+  },
   "card": {
     "builtBecause": "Construido porque",
+    "description": "Descripción",
+    "requestedBy": "Solicitado por",
+    "customField": "Info",
     "viewIdea": "Idea de origen",
     "viewDecision": "Decisión relacionada",
-    "viewInClickup": "Ver en ClickUp",
     "noContext": "Sin contexto adicional"
   },
   "empty_planned": "Nada planificado todavía.",

@@ -75,6 +75,6 @@ export class AIController {
   /** POST /api/ai/converse — Multi-turn conversational idea discovery */
   @Post('converse')
   converseIdea(@Body() dto: ConverseIdeaDto) {
-    return this.aiService.converse(dto.message, dto.previousResponseId ?? null);
+    return this.aiService.converse(dto.message, dto.previousResponseId ?? null, dto.images);
   }
 }

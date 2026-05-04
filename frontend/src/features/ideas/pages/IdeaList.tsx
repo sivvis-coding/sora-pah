@@ -34,6 +34,7 @@ import {
   ViewList as AllIcon,
 } from '@mui/icons-material';
 import { ideasApi, type Idea, type IdeasListResponse } from '../api/ideas.api';
+import { tagsApi, type Tag } from '../../tags/api/tags.api';
 import { useAuth } from '../../auth/AuthContext';
 import ShareButton from '../../../shared/components/ShareButton';
 
@@ -94,9 +95,10 @@ interface IdeaCardProps {
   onRemoveVote: () => void;
   isVoting: boolean;
   locale: string;
+  onTagClick: (tagId: string) => void;
 }
 
-function IdeaCard({ idea, isVoted, isTrending, onVote, onRemoveVote, isVoting, locale }: IdeaCardProps) {
+function IdeaCard({ idea, isVoted, isTrending, onVote, onRemoveVote, isVoting, locale, onTagClick }: IdeaCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation('ideas');
   const theme = useTheme();
@@ -241,28 +243,23 @@ function IdeaCard({ idea, isVoted, isTrending, onVote, onRemoveVote, isVoting, l
 
               {/* Bottom row */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                {/* Category */}
-                {idea.category ? (
+                {/* Tags */}
+                {(idea.tags ?? []).slice(0, 3).map((tag) => (
                   <Chip
-                    label={idea.category.name}
+                    key={tag.id}
+                    label={tag.name}
                     size="small"
                     variant="outlined"
+                    onClick={(e) => { e.stopPropagation(); onTagClick(tag.id); }}
                     sx={{
                       height: 22,
                       fontSize: '0.7rem',
-                      ...(idea.category.color
-                        ? { borderColor: idea.category.color, color: idea.category.color }
-                        : {}),
+                      borderColor: tag.color + '88',
+                      color: tag.color,
+                      cursor: 'pointer',
                     }}
                   />
-                ) : (
-                  <Chip
-                    label={t('list.noCategory')}
-                    size="small"
-                    variant="outlined"
-                    sx={{ height: 22, fontSize: '0.7rem', opacity: 0.45 }}
-                  />
-                )}
+                ))}
 
                 {/* Comment count */}
                 {idea.commentCount > 0 && (
@@ -391,21 +388,14 @@ function TrendingItem({ idea, rank, onClick }: { idea: Idea; rank: number; onCli
           <Typography variant="caption" color="text.disabled">
             {idea.voteCount}
           </Typography>
-          {idea.category && (
-            <>
+          {(idea.tags ?? []).slice(0, 2).map((tag) => (
+            <React.Fragment key={tag.id}>
               <Typography variant="caption" color="text.disabled" sx={{ mx: 0.25 }}>·</Typography>
-              <Typography
-                variant="caption"
-                noWrap
-                sx={{
-                  color: idea.category.color ?? 'text.disabled',
-                  fontWeight: 500,
-                }}
-              >
-                {idea.category.name}
+              <Typography variant="caption" noWrap sx={{ color: tag.color, fontWeight: 500 }}>
+                {tag.name}
               </Typography>
-            </>
-          )}
+            </React.Fragment>
+          ))}
         </Box>
       </Box>
     </Box>
@@ -446,10 +436,17 @@ export default function IdeaList() {
   const [tab, setTab] = useState<TabValue>('all');
   const [search, setSearch] = useState('');
   const [showMine, setShowMine] = useState(false);
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery<IdeasListResponse>({
     queryKey: ['ideas'],
     queryFn: ideasApi.list,
+  });
+
+  const { data: allTags = [] } = useQuery<Tag[]>({
+    queryKey: ['tags'],
+    queryFn: tagsApi.getAll,
+    staleTime: 60_000,
   });
 
   // ─── Vote mutations (optimistic) ─────────────────────────────────────────
@@ -514,6 +511,7 @@ export default function IdeaList() {
     if (!data) return [];
     let ideas = data.ideas;
     if (showMine) ideas = ideas.filter((i) => i.createdBy === user?.id);
+    if (selectedTagId) ideas = ideas.filter((i) => (i.tagIds ?? []).includes(selectedTagId));
     if (search.trim()) {
       const q = search.toLowerCase();
       ideas = ideas.filter((i) =>
@@ -522,7 +520,7 @@ export default function IdeaList() {
       );
     }
     return filterAndSort(ideas, tab, trendingIds);
-  }, [data, tab, search, showMine, user?.id, trendingIds]);
+  }, [data, tab, search, showMine, selectedTagId, user?.id, trendingIds]);
 
   // ─── Loading / error ──────────────────────────────────────────────────────
 
@@ -680,6 +678,39 @@ export default function IdeaList() {
               />
             </Box>
 
+            {/* Tag filter row */}
+            {allTags.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
+                {allTags.slice(0, 15).map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.name}
+                    size="small"
+                    variant={selectedTagId === tag.id ? 'filled' : 'outlined'}
+                    onClick={() => setSelectedTagId(selectedTagId === tag.id ? null : tag.id)}
+                    sx={{
+                      height: 24,
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      bgcolor: selectedTagId === tag.id ? tag.color : tag.color + '11',
+                      color: selectedTagId === tag.id ? '#fff' : tag.color,
+                      borderColor: tag.color + '66',
+                      '&:hover': { bgcolor: tag.color + '33' },
+                    }}
+                  />
+                ))}
+                {selectedTagId && (
+                  <Chip
+                    label="Clear"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setSelectedTagId(null)}
+                    sx={{ height: 24, fontSize: '0.72rem', opacity: 0.6 }}
+                  />
+                )}
+              </Box>
+            )}
+
             {/* Tabs */}
             <Tabs
               value={tab}
@@ -759,6 +790,7 @@ export default function IdeaList() {
                     onRemoveVote={() => removeVoteMutation.mutate(idea.id)}
                     isVoting={voteMutation.isPending || removeVoteMutation.isPending}
                     locale={i18n.language}
+                    onTagClick={(tagId) => setSelectedTagId(tagId)}
                   />
                 ))}
               </Box>

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import {
   Box,
   Typography,
-  Chip,
   CircularProgress,
   Button,
   useTheme,
@@ -20,26 +19,17 @@ import {
   Construction as WorkIcon,
   ArrowForward as ArrowIcon,
   Add as AddIcon,
-  Circle as DotIcon,
   EmojiObjects as FirstIdeaIcon,
   Close as CloseIcon,
   InfoOutlined as AboutIcon,
 } from '@mui/icons-material';
 import { ideasApi, type Idea, type IdeasListResponse } from '../ideas/api/ideas.api';
 import { decisionsApi, type Decision } from '../decisions/api/decisions.api';
-import { narrativesApi, type ClickupTask } from '../narratives/api/narratives.api';
+import { progressBoardApi, type ProgressBoard } from '../progress-board/api/progress-board.api';
+import { PRIORITY_CONFIG } from '../progress-board/components/ProgressBoardCard';
 import { useAuth } from '../auth/AuthContext';
 
 const ABOUT_BANNER_KEY = 'sora_about_banner_dismissed';
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: '#ff9800',
-  'ready to be done': '#ff9800',
-  'in development': '#2196f3',
-  'in progress': '#2196f3',
-  done: '#4caf50',
-  complete: '#4caf50',
-};
 
 // ─── Empty home state ─────────────────────────────────────────────────────────
 
@@ -130,9 +120,10 @@ export default function StakeholderHome() {
     queryFn: decisionsApi.list,
   });
 
-  const { data: workInProgress, isLoading: wipLoading } = useQuery<ClickupTask[]>({
-    queryKey: ['work-in-progress'],
-    queryFn: narrativesApi.getWorkInProgress,
+  const { data: board, isLoading: wipLoading } = useQuery<ProgressBoard>({
+    queryKey: ['progress-board'],
+    queryFn: progressBoardApi.getBoard,
+    staleTime: 5 * 60 * 1000,
   });
 
   const ideas = ideasData?.ideas ?? [];
@@ -140,7 +131,7 @@ export default function StakeholderHome() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
   const recentDecisions = (decisions ?? []).slice(0, 3);
-  const activeTasks = (workInProgress ?? []).slice(0, 6);
+  const activeTasks = (board?.in_progress ?? []).slice(0, 5);
 
   const firstName = user?.name?.split(' ')[0] ?? '';
   const isLoading = ideasLoading && decisionsLoading && wipLoading;
@@ -230,50 +221,72 @@ export default function StakeholderHome() {
         <FeedSection
           icon={<WorkIcon sx={{ fontSize: 16, color: 'info.main' }} />}
           title={t('sections.workInProgress')}
-          onSeeAll={() => navigate('/narratives')}
+          onSeeAll={() => navigate('/progress')}
           seeAllLabel={t('sections.seeAll')}
         >
-          {activeTasks.map((task) => (
-            <Box
-              key={task.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.25,
-                py: 1.25,
-              }}
-            >
-              <DotIcon
+          {activeTasks.map((task) => {
+            const p = task.priority ? PRIORITY_CONFIG[task.priority] : null;
+            return (
+              <Box
+                key={task.id}
                 sx={{
-                  fontSize: 8,
-                  color: STATUS_COLORS[task.status.toLowerCase()] ?? '#9e9e9e',
-                  flexShrink: 0,
-                }}
-              />
-              <Typography
-                variant="body2"
-                sx={{
-                  flex: 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  py: 1,
+                  borderRadius: 1.5,
+                  px: 1,
+                  mx: -1,
+                  transition: 'background-color 0.1s',
+                  '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
-                {task.name}
-              </Typography>
-              <Chip
-                size="small"
-                label={task.status}
-                sx={{
-                  fontSize: '0.6rem',
-                  height: 18,
-                  fontWeight: 600,
-                  bgcolor: (STATUS_COLORS[task.status.toLowerCase()] ?? '#9e9e9e') + '18',
-                  color: STATUS_COLORS[task.status.toLowerCase()] ?? '#9e9e9e',
-                }}
-              />
-            </Box>
-          ))}
+                {/* Pulsing dot for in_progress */}
+                <Box
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    bgcolor: '#1976d2',
+                    flexShrink: 0,
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%':   { boxShadow: '0 0 0 0 #1976d280' },
+                      '70%':  { boxShadow: '0 0 0 5px transparent' },
+                      '100%': { boxShadow: '0 0 0 0 transparent' },
+                    },
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {task.title}
+                </Typography>
+                {p && (
+                  <Box
+                    component="span"
+                    sx={{
+                      flexShrink: 0,
+                      fontSize: '0.6rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: 0.75,
+                      bgcolor: p.color + '18',
+                      color: p.color,
+                      border: `1px solid ${p.border}`,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {t(`priority.${task.priority}`, { ns: 'progressBoard' })}
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
         </FeedSection>
       )}
 

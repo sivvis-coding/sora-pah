@@ -142,6 +142,12 @@ export class ConverseIdeaDto {
   @IsString()
   @IsOptional()
   previousResponseId?: string | null;
+
+  /** Base64 data-URL images attached to this message (ephemeral, not stored) */
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  images?: string[];
 }
 
 export class IndexDocsDto {

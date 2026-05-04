@@ -7,6 +7,6 @@ import { ClickUpDocsService } from './clickup-docs.service';
 @Module({
   controllers: [RagController],
   providers: [RagService, EmbeddingsService, ClickUpDocsService],
-  exports: [RagService],
+  exports: [RagService, ClickUpDocsService],
 })
 export class RagModule {}

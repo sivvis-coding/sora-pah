@@ -11,9 +11,11 @@
     "myActivity": "My Activity",
     "adminSection": "Admin",
     "workspace": "US Workspace",
-    "admin": "System",
     "about": "What is SORA?",
-    "progress": "Progress Board"
+    "progress": "What's Happening",
+    "integrations": "Integrations",
+    "docs": "Documentation",
+    "learn": "Learn"
   },
   "common": {
     "loading": "Loading...",

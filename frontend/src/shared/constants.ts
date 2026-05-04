@@ -33,13 +33,3 @@ export const AppMode = {
 } as const;
 
 export type AppMode = (typeof AppMode)[keyof typeof AppMode];
-
-// ─── External links ───────────────────────────────────────────────────────────
-// Replace with real URLs from environment variables when available.
-
-export const EXTERNAL_LINKS = {
-  /** Freshservice portal for bug/incident reporting */
-  FRESHSERVICE: (import.meta as any).env?.VITE_FRESHSERVICE_URL ?? 'https://support.example.com',
-  /** Internal help / knowledge base */
-  HELP: (import.meta as any).env?.VITE_HELP_URL ?? '/help',
-} as const;

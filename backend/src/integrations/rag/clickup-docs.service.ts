@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '../../database/app-config.service';
 
 /**
  * ClickUp v3 Docs API client.
@@ -19,29 +19,32 @@ export interface ClickUpPage {
   id: string;
   name: string;
   content: string; // markdown
+  /** Direct link: https://app.clickup.com/{teamId}/docs/{docId}/{pageId} */
+  url: string;
+}
+
+/** Page with its children — preserves ClickUp hierarchy for sidebar tree */
+export interface PageNode {
+  id: string;
+  name: string;
+  url: string;
+  children: PageNode[];
 }
 
 @Injectable()
 export class ClickUpDocsService {
   private readonly logger = new Logger(ClickUpDocsService.name);
-  private readonly apiKey: string;
-  private readonly teamId: string;
-  private readonly folderId: string;
   private readonly baseUrl = 'https://api.clickup.com/api/v3';
 
-  constructor(private readonly config: ConfigService) {
-    this.apiKey = this.config.get<string>('CLICKUP_API_KEY', '');
-    this.teamId = this.config.get<string>('CLICKUP_TEAM_ID', '9015583051');
-    this.folderId = this.config.get<string>(
-      'CLICKUP_DOCS_FOLDER_ID',
-      '901513874495',
-    );
-  }
+  constructor(private readonly appConfig: AppConfigService) {}
 
   private async fetchJson<T>(url: string): Promise<T> {
+    const apiKey = await this.appConfig.get('clickup', 'apiKey');
+    if (!apiKey) throw new Error('ClickUp API key not configured');
+
     const res = await fetch(url, {
       headers: {
-        Authorization: this.apiKey,
+        Authorization: apiKey,
         'Content-Type': 'application/json',
       },
     });
@@ -59,22 +62,22 @@ export class ClickUpDocsService {
    * Filters by parent folder if CLICKUP_DOCS_FOLDER_ID is set.
    */
   async listDocs(): Promise<ClickUpDoc[]> {
-    if (!this.apiKey) {
-      throw new Error('CLICKUP_API_KEY not configured');
+    const apiKey = await this.appConfig.get('clickup', 'apiKey');
+    if (!apiKey) {
+      throw new Error('ClickUp API key not configured');
     }
 
+    const teamId = (await this.appConfig.get('clickup', 'teamId')) ?? '9015583051';
+    const folderId = (await this.appConfig.get('clickup', 'docsFolderId')) ?? '';
+
     this.logger.log(
-      `Fetching docs from workspace ${this.teamId}, folder ${this.folderId}`,
+      `Fetching docs from workspace ${teamId}, folder ${folderId || '(all)'}`,
     );
 
-    // The v3 API uses workspace_id in the path
-    // Query params to filter by parent container
-    let url = `${this.baseUrl}/workspaces/${this.teamId}/docs`;
+    let url = `${this.baseUrl}/workspaces/${teamId}/docs`;
 
-    // If we have a folder filter, try to pass it
-    // ClickUp v3 docs endpoint accepts parent_id and parent_type params
-    if (this.folderId) {
-      url += `?parent_id=${this.folderId}&parent_type=folder`;
+    if (folderId) {
+      url += `?parent_id=${folderId}&parent_type=folder`;
     }
 
     try {
@@ -92,7 +95,7 @@ export class ClickUpDocsService {
       this.logger.warn(
         `Failed to fetch docs with folder filter, trying without: ${err}`,
       );
-      const fallbackUrl = `${this.baseUrl}/workspaces/${this.teamId}/docs`;
+      const fallbackUrl = `${this.baseUrl}/workspaces/${teamId}/docs`;
       const data = await this.fetchJson<{
         docs: Array<{ id: string; name: string }>;
       }>(fallbackUrl);
@@ -106,16 +109,65 @@ export class ClickUpDocsService {
    * Fetch metadata (id, name) for a single doc by ID.
    */
   async getDocInfo(docId: string): Promise<ClickUpDoc> {
-    const url = `${this.baseUrl}/workspaces/${this.teamId}/docs/${docId}`;
+    const teamId = (await this.appConfig.get('clickup', 'teamId')) ?? '9015583051';
+    const url = `${this.baseUrl}/workspaces/${teamId}/docs/${docId}`;
     const data = await this.fetchJson<{ id: string; name: string }>(url);
     return { id: data.id ?? docId, name: data.name ?? docId };
+  }
+
+  /**
+   * Get a single page by docId + pageId with its markdown content.
+   */
+  async getPage(docId: string, pageId: string): Promise<ClickUpPage> {
+    const teamId = (await this.appConfig.get('clickup', 'teamId')) ?? '9015583051';
+    const url = `${this.baseUrl}/workspaces/${teamId}/docs/${docId}/pages/${pageId}`;
+    const raw = await this.fetchJson<any>(url);
+    const effectiveDocId = raw.doc_id ?? docId;
+    const effectiveTeamId = raw.workspace_id ? String(raw.workspace_id) : teamId;
+    return {
+      id: raw.id ?? pageId,
+      name: raw.name ?? '',
+      content: raw.content ?? '',
+      url: `https://doc.clickup.com/${effectiveTeamId}/d/h/${effectiveDocId}/${raw.id ?? pageId}`,
+    };
+  }
+
+  /**
+   * Get page tree for a document — preserves parent/child hierarchy.
+   * Used by the docs browser to render the sidebar tree.
+   */
+  async getDocTree(docId: string): Promise<PageNode[]> {
+    const teamId = (await this.appConfig.get('clickup', 'teamId')) ?? '9015583051';
+    const url = `${this.baseUrl}/workspaces/${teamId}/docs/${docId}/pages`;
+    const raw = await this.fetchJson<unknown>(url);
+    const topLevel: any[] = Array.isArray(raw) ? raw : (raw as any)?.pages ?? [];
+    return this.buildTree(topLevel, docId, teamId);
+  }
+
+  private buildTree(
+    pages: Array<{ id: string; name: string; order_index?: number; pages?: any[]; doc_id?: string; workspace_id?: number }>,
+    docId: string,
+    teamId: string,
+  ): PageNode[] {
+    const sorted = [...pages].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    return sorted.map((page) => {
+      const effectiveDocId = page.doc_id ?? docId;
+      const effectiveTeamId = page.workspace_id ? String(page.workspace_id) : teamId;
+      return {
+        id: page.id,
+        name: page.name,
+        url: `https://doc.clickup.com/${effectiveTeamId}/d/h/${effectiveDocId}/${page.id}`,
+        children: page.pages?.length ? this.buildTree(page.pages, docId, teamId) : [],
+      };
+    });
   }
 
   /**
    * Get all pages of a document with their content.
    */
   async getDocPages(docId: string): Promise<ClickUpPage[]> {
-    const url = `${this.baseUrl}/workspaces/${this.teamId}/docs/${docId}/pages`;
+    const teamId = (await this.appConfig.get('clickup', 'teamId')) ?? '9015583051';
+    const url = `${this.baseUrl}/workspaces/${teamId}/docs/${docId}/pages`;
 
     // ClickUp v3 returns a plain array (not wrapped in { pages: [] })
     const raw = await this.fetchJson<unknown>(url);
@@ -124,21 +176,27 @@ export class ClickUpDocsService {
     this.logger.log(`  getDocPages(${docId}): ${topLevel.length} top-level pages`);
 
     // Recursively flatten pages and their subpages
-    return this.flattenPages(topLevel);
+    return this.flattenPages(topLevel, docId, teamId);
   }
 
   private flattenPages(
-    pages: Array<{ id: string; name: string; content?: string; pages?: any[] }>,
+    pages: Array<{ id: string; name: string; content?: string; pages?: any[]; doc_id?: string; workspace_id?: number }>,
+    docId: string,
+    teamId: string,
   ): ClickUpPage[] {
     const result: ClickUpPage[] = [];
     for (const page of pages) {
+      // Use doc_id from response if available (matches public URL format)
+      const effectiveDocId = page.doc_id ?? docId;
+      const effectiveTeamId = page.workspace_id ? String(page.workspace_id) : teamId;
       result.push({
         id: page.id,
         name: page.name,
         content: page.content ?? '',
+        url: `https://doc.clickup.com/${effectiveTeamId}/d/h/${effectiveDocId}/${page.id}`,
       });
       if (page.pages?.length) {
-        result.push(...this.flattenPages(page.pages));
+        result.push(...this.flattenPages(page.pages, docId, teamId));
       }
     }
     return result;

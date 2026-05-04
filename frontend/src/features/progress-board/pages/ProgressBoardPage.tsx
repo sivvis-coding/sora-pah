@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Fade,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
-import { ViewKanban as BoardIcon } from '@mui/icons-material';
-import { progressBoardApi, type ProgressBoard } from '../api/progress-board.api';
+import {
+  ViewKanban as BoardIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
+import { progressBoardApi, type ProgressBoard, type ProgressCard } from '../api/progress-board.api';
 import ProgressBoardColumn from '../components/ProgressBoardColumn';
 
 // ─── Skeleton loading ────────────────────────────────────────────────────────
@@ -71,27 +75,59 @@ function EmptyBoard({ t }: { t: (key: string) => string }) {
   );
 }
 
+// ─── Search filter helper ────────────────────────────────────────────────────
+
+function matchesSearch(card: ProgressCard, query: string): boolean {
+  const q = query.toLowerCase();
+  return (
+    card.title.toLowerCase().includes(q) ||
+    (card.description ?? '').toLowerCase().includes(q) ||
+    (card.requestedBy ?? '').toLowerCase().includes(q) ||
+    (card.customFieldValue ?? '').toLowerCase().includes(q) ||
+    (card.builtBecause ?? '').toLowerCase().includes(q) ||
+    card.rawStatus.includes(q)
+  );
+}
+
 // ─── ProgressBoardPage ────────────────────────────────────────────────────────
 
 const COLUMNS = ['planned', 'in_progress', 'done'] as const;
 
 export default function ProgressBoardPage() {
   const { t } = useTranslation('progressBoard');
+  const [search, setSearch] = useState('');
 
   const { data, isLoading, isError } = useQuery<ProgressBoard>({
     queryKey: ['progress-board'],
     queryFn: progressBoardApi.getBoard,
-    // Refresh every 5 minutes — ClickUp data doesn't change second by second
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   });
 
+  // Filter cards across all columns when search is active
+  const filtered = useMemo(() => {
+    if (!data) return null;
+    const q = search.trim();
+    if (!q) return data;
+    return {
+      planned: data.planned.filter((c) => matchesSearch(c, q)),
+      in_progress: data.in_progress.filter((c) => matchesSearch(c, q)),
+      done: data.done.filter((c) => matchesSearch(c, q)),
+      fetchedAt: data.fetchedAt,
+    };
+  }, [data, search]);
+
   const totalItems =
+    (filtered?.planned.length ?? 0) +
+    (filtered?.in_progress.length ?? 0) +
+    (filtered?.done.length ?? 0);
+
+  const totalUnfiltered =
     (data?.planned.length ?? 0) +
     (data?.in_progress.length ?? 0) +
     (data?.done.length ?? 0);
 
-  const isEmptyBoard = !isLoading && !isError && totalItems === 0;
+  const isEmptyBoard = !isLoading && !isError && totalUnfiltered === 0;
 
   return (
     <Box sx={{ pb: { xs: 8, md: 6 } }}>
@@ -119,6 +155,32 @@ export default function ProgressBoardPage() {
         )}
       </Box>
 
+      {/* Search bar — only show when we have data */}
+      {data && totalUnfiltered > 0 && (
+        <Box sx={{ mb: 3, maxWidth: { xs: '100%', sm: 360 } }}>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 20, color: 'text.disabled' }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+              },
+            }}
+          />
+        </Box>
+      )}
+
       {/* Loading */}
       {isLoading && <BoardSkeleton />}
 
@@ -132,8 +194,17 @@ export default function ProgressBoardPage() {
       {/* Empty board (ClickUp configured but no matching tasks) */}
       {isEmptyBoard && <EmptyBoard t={t} />}
 
+      {/* No search results */}
+      {filtered && totalUnfiltered > 0 && totalItems === 0 && (
+        <Box sx={{ textAlign: 'center', py: 6 }}>
+          <Typography variant="body2" color="text.disabled">
+            {t('noResults')}
+          </Typography>
+        </Box>
+      )}
+
       {/* Board */}
-      {data && totalItems > 0 && (
+      {filtered && totalItems > 0 && (
         <Fade in timeout={300}>
           <Box
             sx={{
@@ -147,7 +218,7 @@ export default function ProgressBoardPage() {
               <ProgressBoardColumn
                 key={col}
                 column={col}
-                cards={data[col]}
+                cards={filtered[col]}
               />
             ))}
           </Box>

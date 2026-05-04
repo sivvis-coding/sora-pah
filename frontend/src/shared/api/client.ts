@@ -19,8 +19,13 @@ apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      window.location.href = '/';
+      // Don't redirect during setup wizard — those endpoints are @Public
+      const isSetupRoute = window.location.pathname.startsWith('/setup');
+      const isSetupApi = error.config?.url?.startsWith('/setup/');
+      if (!isSetupRoute && !isSetupApi) {
+        localStorage.removeItem(STORAGE_KEYS.TOKEN);
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   },

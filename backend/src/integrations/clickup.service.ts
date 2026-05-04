@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '../database/app-config.service';
 
 export interface ClickupTask {
   id: string;
@@ -10,18 +10,27 @@ export interface ClickupTask {
 // ─── Progress Board types ─────────────────────────────────────────────────────
 
 export type ProgressColumn = 'planned' | 'in_progress' | 'done';
+export type ProgressPriority = 'high' | 'medium' | 'low';
 
 export interface ProgressCard {
   /** ClickUp task ID */
   id: string;
   title: string;
   column: ProgressColumn;
-  /** ClickUp task URL for deep-linking */
-  clickupUrl: string;
   /** Raw ClickUp status string (lowercase) */
   rawStatus: string;
   /** ISO date string when task was last updated / closed */
   dateUpdated: string | null;
+  /** Task description (plain text, may be long) */
+  description: string | null;
+  /** Who requested this feature (from ClickUp custom field) */
+  requestedBy: string | null;
+  /** Value of the admin-configured custom field to display on the card */
+  customFieldValue: string | null;
+  /** Label (name) of that custom field */
+  customFieldLabel: string | null;
+  /** Mapped priority level (from admin-configured priority field + mapping) */
+  priority: ProgressPriority | null;
   /** Free-text field read from description or custom field */
   builtBecause: string | null;
   /** SORA idea ID extracted from description/custom field */
@@ -72,8 +81,6 @@ export interface ClickupCreateResult {
 @Injectable()
 export class ClickupService {
   private readonly logger = new Logger(ClickupService.name);
-  private readonly apiKey: string;
-  private readonly backlogListId: string;
   private readonly baseUrl = 'https://api.clickup.com/api/v2';
 
   // Task type ID for User Stories in the product backlog
@@ -87,13 +94,7 @@ export class ClickupService {
   private static readonly FIELD_REQUESTED_BY = 'a2a15b34-0013-4ac2-bb8e-74647ccb1c27';
   private static readonly FIELD_FUNCTIONAL_DESCRIPTION = 'fa1ea1f2-d319-4f27-be5d-8b5aa808dd08';
 
-  constructor(private readonly config: ConfigService) {
-    this.apiKey = this.config.get<string>('CLICKUP_API_KEY', '');
-    this.backlogListId = this.config.get<string>(
-      'CLICKUP_PRODUCT_BACKLOG_LIST_ID',
-      '',
-    );
-  }
+  constructor(private readonly appConfig: AppConfigService) {}
 
   // ─── Read: fetch tasks ───────────────────────────────────────────────────────
 
@@ -102,15 +103,16 @@ export class ClickupService {
    * Returns minimal data: id, name, status.
    */
   async getTasks(listId: string): Promise<ClickupTask[]> {
-    if (!this.apiKey) {
-      this.logger.warn('CLICKUP_API_KEY not configured — returning empty tasks');
+    const apiKey = await this.appConfig.get('clickup', 'apiKey');
+    if (!apiKey) {
+      this.logger.warn('ClickUp API key not configured — returning empty tasks');
       return [];
     }
 
     try {
       const url = `${this.baseUrl}/list/${listId}/task?include_closed=false&subtasks=false&page=0`;
       const res = await fetch(url, {
-        headers: { Authorization: this.apiKey },
+        headers: { Authorization: apiKey },
       });
 
       if (!res.ok) {
@@ -142,16 +144,18 @@ export class ClickupService {
   async createUserStoryTask(
     story: UserStoryPayload,
   ): Promise<ClickupCreateResult> {
-    if (!this.apiKey) {
-      this.logger.warn('CLICKUP_API_KEY not configured');
+    const apiKey = await this.appConfig.get('clickup', 'apiKey');
+    if (!apiKey) {
+      this.logger.warn('ClickUp API key not configured');
       throw new Error('ClickUp integration not configured');
     }
-    if (!this.backlogListId) {
-      this.logger.warn('CLICKUP_PRODUCT_BACKLOG_LIST_ID not configured');
+    const backlogListId = await this.appConfig.get('clickup', 'productBacklogListId');
+    if (!backlogListId) {
+      this.logger.warn('Product Backlog list ID not configured');
       throw new Error('Product Backlog list ID not configured');
     }
 
-    const url = `${this.baseUrl}/list/${this.backlogListId}/task`;
+    const url = `${this.baseUrl}/list/${backlogListId}/task`;
 
     const payload = {
       name: story.title,
@@ -190,7 +194,7 @@ export class ClickupService {
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
-        Authorization: this.apiKey,
+        Authorization: apiKey,
       },
       body: JSON.stringify(payload),
     });
@@ -228,9 +232,38 @@ export class ClickupService {
    *   [built-because:TEXT] → builtBecause
    */
   async getProgressBoard(): Promise<ProgressBoard> {
-    const sprintListId = this.config.get<string>('CLICKUP_LIST_ID', '');
-    const backlogListId = this.backlogListId;
+    const sprintListId = (await this.appConfig.get('clickup', 'listId')) ?? '';
+    const backlogListId = (await this.appConfig.get('clickup', 'productBacklogListId')) ?? '';
     const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+
+    // Load status mapping from config — fall back to sane defaults if not configured
+    const parseArr = (v?: string) => { try { return v ? (JSON.parse(v) as string[]) : []; } catch { return []; } };
+    const mappedPlanned    = parseArr(await this.appConfig.get('clickup', 'statusPlanned'));
+    const mappedInProgress = parseArr(await this.appConfig.get('clickup', 'statusInProgress'));
+    const mappedDone       = parseArr(await this.appConfig.get('clickup', 'statusDone'));
+
+    // Custom field to display on cards (optional)
+    const cardCustomFieldId = (await this.appConfig.get('clickup', 'cardCustomFieldId')) || null;
+
+    // Priority field + mapping (optional)
+    const priorityFieldId = (await this.appConfig.get('clickup', 'priorityFieldId')) || null;
+    const parsePriorityMap = (v?: string): Record<ProgressPriority, string[]> => {
+      try { return v ? JSON.parse(v) : { high: [], medium: [], low: [] }; }
+      catch { return { high: [], medium: [], low: [] }; }
+    };
+    const priorityMapping = parsePriorityMap(
+      await this.appConfig.get('clickup', 'priorityMapping') ?? undefined,
+    );
+
+    const PRIORITY_ORDER: Record<ProgressPriority | 'none', number> = {
+      high: 0, medium: 1, low: 2, none: 3,
+    };
+
+    const statusMapping = {
+      planned:     mappedPlanned.length    ? mappedPlanned    : ['to do', 'backlog', 'planned', 'ready', 'open'],
+      in_progress: mappedInProgress.length ? mappedInProgress : ['in progress', 'in review', 'qa', 'testing', 'doing', 'review'],
+      done:        mappedDone.length        ? mappedDone        : ['done', 'complete', 'completed', 'closed'],
+    };
 
     // Fetch both lists in parallel; missing list ID → empty array (graceful)
     const [sprintRaw, backlogRaw] = await Promise.all([
@@ -240,13 +273,21 @@ export class ClickupService {
 
     const allRaw = [...sprintRaw, ...backlogRaw];
 
+    // Deduplicate by task ID (task can appear in both lists)
+    const seen = new Set<string>();
+    const uniqueRaw = allRaw.filter((t) => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+
     const planned: ProgressCard[] = [];
     const in_progress: ProgressCard[] = [];
     const done: ProgressCard[] = [];
 
-    for (const raw of allRaw) {
+    for (const raw of uniqueRaw) {
       const status = (raw.status?.status ?? '').toLowerCase().trim();
-      const column = this.mapStatusToColumn(status);
+      const column = this.mapStatusToColumn(status, statusMapping);
 
       if (!column) continue; // unknown status → skip
 
@@ -264,9 +305,28 @@ export class ClickupService {
         id: raw.id,
         title: raw.name,
         column,
-        clickupUrl: raw.url ?? `https://app.clickup.com/t/${raw.id}`,
         rawStatus: status,
         dateUpdated,
+        description: description || null,
+        requestedBy: this.extractCustomField(
+          raw.custom_fields,
+          ClickupService.FIELD_REQUESTED_BY,
+        ),
+        customFieldValue: cardCustomFieldId
+          ? this.extractCustomField(raw.custom_fields, cardCustomFieldId)
+          : null,
+        customFieldLabel: cardCustomFieldId
+          ? this.extractCustomFieldLabel(raw.custom_fields, cardCustomFieldId)
+          : null,
+        priority: (() => {
+          if (!priorityFieldId) return null;
+          const val = (this.extractCustomField(raw.custom_fields, priorityFieldId) ?? '').toLowerCase().trim();
+          if (!val) return null;
+          if (priorityMapping.high.includes(val)) return 'high';
+          if (priorityMapping.medium.includes(val)) return 'medium';
+          if (priorityMapping.low.includes(val)) return 'low';
+          return null;
+        })(),
         builtBecause: this.extractTag(description, 'built-because'),
         linkedIdeaId: this.extractTag(description, 'sora-idea'),
         linkedDecisionId: this.extractTag(description, 'sora-decision'),
@@ -277,26 +337,78 @@ export class ClickupService {
       else done.push(card);
     }
 
+    const sortByPriority = (cards: ProgressCard[]) =>
+      cards.sort((a, b) =>
+        PRIORITY_ORDER[a.priority ?? 'none'] - PRIORITY_ORDER[b.priority ?? 'none'],
+      );
+
     return {
-      planned,
-      in_progress,
-      done,
+      planned:    sortByPriority(planned),
+      in_progress: sortByPriority(in_progress),
+      done:       sortByPriority(done),
       fetchedAt: new Date().toISOString(),
     };
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
-  private mapStatusToColumn(status: string): ProgressColumn | null {
-    if (['to do', 'backlog', 'planned', 'ready', 'open'].includes(status)) return 'planned';
-    if (['in progress', 'in review', 'qa', 'testing', 'doing', 'review'].includes(status)) return 'in_progress';
-    if (['done', 'complete', 'completed', 'closed'].includes(status)) return 'done';
+  private mapStatusToColumn(status: string, mapping: { planned: string[]; in_progress: string[]; done: string[] }): ProgressColumn | null {
+    const s = status.toLowerCase().trim();
+    if (mapping.planned.includes(s)) return 'planned';
+    if (mapping.in_progress.includes(s)) return 'in_progress';
+    if (mapping.done.includes(s)) return 'done';
     return null;
   }
 
   private extractTag(text: string, tag: string): string | null {
     const match = text.match(new RegExp(`\\[${tag}:([^\\]]+)\\]`));
     return match ? match[1].trim() : null;
+  }
+
+  /** Extract a text custom field value by field ID.
+   *  Handles dropdown/labels: value is an orderindex → resolve name from type_config.options.
+   */
+  private extractCustomField(
+    customFields: Array<{
+      id: string;
+      name: string;
+      type?: string;
+      value?: unknown;
+      type_config?: { options?: Array<{ id: string; name: string; orderindex: number }> };
+    }> | undefined,
+    fieldId: string,
+  ): string | null {
+    if (!customFields) return null;
+    const field = customFields.find((f) => f.id === fieldId);
+    if (!field || field.value == null || field.value === '') return null;
+
+    // Dropdown / labels: value is the orderindex (number) — resolve to option name
+    if (
+      (field.type === 'drop_down' || field.type === 'labels') &&
+      field.type_config?.options
+    ) {
+      const idx = Number(field.value);
+      const option = field.type_config.options.find((o) => o.orderindex === idx);
+      return option?.name ?? null;
+    }
+
+    return String(field.value);
+  }
+
+  /** Extract a custom field name (label) by field ID */
+  private extractCustomFieldLabel(
+    customFields: Array<{
+      id: string;
+      name: string;
+      type?: string;
+      value?: unknown;
+      type_config?: { options?: Array<{ id: string; name: string; orderindex: number }> };
+    }> | undefined,
+    fieldId: string,
+  ): string | null {
+    if (!customFields) return null;
+    const field = customFields.find((f) => f.id === fieldId);
+    return field?.name ?? null;
   }
 
   /**
@@ -310,17 +422,24 @@ export class ClickupService {
     description?: string;
     url?: string;
     date_updated?: string;
+    custom_fields?: Array<{
+      id: string;
+      name: string;
+      type?: string;
+      value?: unknown;
+      type_config?: { options?: Array<{ id: string; name: string; orderindex: number }> };
+    }>;
   }>> {
-    if (!this.apiKey) return [];
+    const apiKey = await this.appConfig.get('clickup', 'apiKey');
+    if (!apiKey) return [];
 
     try {
       const url =
         `${this.baseUrl}/list/${listId}/task` +
-        `?include_closed=true&subtasks=false&page=0` +
-        `&fields=id,name,status,description,url,date_updated`;
+        `?include_closed=true&subtasks=false&page=0`;
 
       const res = await fetch(url, {
-        headers: { Authorization: this.apiKey },
+        headers: { Authorization: apiKey },
       });
 
       if (!res.ok) {
@@ -336,6 +455,13 @@ export class ClickupService {
           description?: string;
           url?: string;
           date_updated?: string;
+          custom_fields?: Array<{
+            id: string;
+            name: string;
+            type?: string;
+            value?: unknown;
+            type_config?: { options?: Array<{ id: string; name: string; orderindex: number }> };
+          }>;
         }>;
       };
 

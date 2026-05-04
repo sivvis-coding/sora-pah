@@ -26,7 +26,7 @@ export interface Idea {
   value: string;
   solutionIdea: string | null;
   productId: string | null;
-  categoryId: string | null;
+  tagIds: string[];
   createdBy: string;
   status: IdeaStatus;
   discardReason: string | null;

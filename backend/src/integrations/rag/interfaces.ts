@@ -10,6 +10,8 @@ export interface DocChunk {
   docTitle: string;
   pageTitle: string;
   chunkIndex: number;
+  /** Direct link to the ClickUp page — built at index time */
+  pageUrl: string;
 }
 
 /** Stored record in the Cosmos "embeddings" container */
@@ -23,6 +25,8 @@ export interface EmbeddingRecord {
   content: string;
   embedding: number[];  // 1536-dim float32
   indexedAt: string;
+  /** Direct link to the ClickUp page */
+  pageUrl: string;
 }
 
 /** Result of a vector similarity search */
@@ -31,6 +35,8 @@ export interface RetrievedChunk {
   docTitle: string;
   pageTitle: string;
   score: number;
+  /** Direct link to the ClickUp page */
+  pageUrl: string;
 }
 
 /** Stats returned after indexing */

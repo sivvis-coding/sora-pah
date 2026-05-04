@@ -95,6 +95,7 @@ export class RagService {
             pageId: page.id,
             docTitle: doc.name,
             pageTitle: page.name,
+            pageUrl: page.url,
           });
           allChunks.push(...chunks);
         }
@@ -127,6 +128,7 @@ export class RagService {
         content: chunk.content,
         embedding: embeddings[i],
         indexedAt: new Date().toISOString(),
+        pageUrl: chunk.pageUrl,
       };
 
       try {
@@ -188,6 +190,7 @@ export class RagService {
         content: string;
         docTitle: string;
         pageTitle: string;
+        pageUrl: string;
         score: number;
       }>({
         query: `
@@ -195,6 +198,7 @@ export class RagService {
             c.content,
             c.docTitle,
             c.pageTitle,
+            c.pageUrl,
             VectorDistance(c.embedding, @queryVector) AS score
           FROM c
           ORDER BY VectorDistance(c.embedding, @queryVector)
@@ -213,7 +217,69 @@ export class RagService {
       docTitle: r.docTitle,
       pageTitle: r.pageTitle,
       score: r.score,
+      pageUrl: r.pageUrl,
     }));
+  }
+
+  /**
+   * Delete all chunks for a specific doc from the embeddings container.
+   */
+  async deleteDoc(docId: string): Promise<{ deleted: number }> {
+    try {
+      const container = await this.ensureContainer();
+      const { resources } = await container.items
+        .query<{ id: string }>({ query: 'SELECT c.id FROM c WHERE c.docId = @docId', parameters: [{ name: '@docId', value: docId }] })
+        .fetchAll();
+      for (const item of resources) {
+        await container.item(item.id, docId).delete();
+      }
+      this.logger.log(`Deleted ${resources.length} chunks for doc ${docId}`);
+      return { deleted: resources.length };
+    } catch (err) {
+      this.logger.error(`Failed to delete doc ${docId}: ${err}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Returns the distinct docs currently indexed (by docId + docTitle).
+   */
+  async getIndexedDocs(): Promise<{ docId: string; docTitle: string; chunkCount: number }[]> {
+    try {
+      const { resources } = await this.db.container('embeddings').items
+        .query<{ docId: string; docTitle: string; count: number }>({
+          query: 'SELECT c.docId, c.docTitle, COUNT(1) as count FROM c GROUP BY c.docId, c.docTitle',
+        })
+        .fetchAll();
+      return resources.map((r) => ({ docId: r.docId, docTitle: r.docTitle, chunkCount: r.count }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Returns distinct pages indexed for a given doc (pageId + pageTitle + pageUrl).
+   * Reads from Cosmos — no ClickUp API call needed.
+   */
+  async getIndexedPages(docId: string): Promise<{ pageId: string; pageTitle: string; pageUrl: string }[]> {
+    try {
+      const { resources } = await this.db.container('embeddings').items
+        .query<{ pageId: string; pageTitle: string; pageUrl: string }>({
+          query: `SELECT DISTINCT c.pageId, c.pageTitle, c.pageUrl
+                  FROM c WHERE c.docId = @docId`,
+          parameters: [{ name: '@docId', value: docId }],
+        })
+        .fetchAll();
+      // Deduplicate in JS (Cosmos DISTINCT may not deduplicate on multiple fields consistently)
+      const seen = new Set<string>();
+      return resources.filter((r) => {
+        if (seen.has(r.pageId)) return false;
+        seen.add(r.pageId);
+        return true;
+      });
+    } catch {
+      return [];
+    }
   }
 
   /**

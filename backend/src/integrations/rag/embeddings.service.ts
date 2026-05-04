@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '../../database/app-config.service';
 
 /**
  * OpenAI Embeddings service.
@@ -8,21 +8,19 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class EmbeddingsService {
   private readonly logger = new Logger(EmbeddingsService.name);
-  private readonly apiKey: string;
   private readonly model = 'text-embedding-3-small';
   private readonly url = 'https://api.openai.com/v1/embeddings';
 
-  constructor(private readonly config: ConfigService) {
-    this.apiKey = this.config.get<string>('OPENAI_API_KEY', '');
-  }
+  constructor(private readonly appConfig: AppConfigService) {}
 
   /**
    * Embed multiple texts in a single API call.
    * OpenAI supports up to 2048 inputs per call; we batch at 100 for safety.
    */
   async embed(texts: string[]): Promise<number[][]> {
-    if (!this.apiKey) {
-      throw new Error('OPENAI_API_KEY not configured — cannot generate embeddings');
+    const apiKey = await this.appConfig.get('openai', 'apiKey');
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured — cannot generate embeddings');
     }
 
     const results: number[][] = [];
@@ -38,7 +36,7 @@ export class EmbeddingsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           model: this.model,
